@@ -56,28 +56,47 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 ---
 
 ## 💡 Claude's 3 Proposals (Ideas 4–6)
-*(To be added by Claude Opus via git pull in the secondary agy/claude session)*
+*Design principle: Gemini's three ideas cover **founder tooling (simulated)**, **founder networking**, and **student safety**. Mine go after three different angles: (a) **money the founder is owed**, (b) **money the student is owed**, and (c) **a demo where the judges become the product's first users live**. Each one ends with a real £ figure or real live data on screen, not a simulated one.*
 
-### 🔹 Idea 4: [To be added]
-* **The One-Liner:**
-* **The Audience Resonance:**
+### 🔹 Idea 4: "Claimable" — Turn Your GitHub Into an HMRC R&D Tax Credit Claim in 60 Seconds
+* **The One-Liner:** Paste a public GitHub repo URL. Claimable reads the commit history, finds the work that counts as R&D (the hard technical uncertainties you solved), estimates how much cash HMRC owes you, and drafts the technical narrative for HMRC's Additional Information Form (AIF).
+* **The Audience Resonance:** Every seed VC in the room has portfolio companies leaving R&D credit cash unclaimed, or paying advisors **15–30% of the claim** to write it up. Since 2023, HMRC has required a detailed AIF technical narrative with every claim and has cracked down hard on poor-quality claims. That makes a well-evidenced, commit-backed narrative valuable. Imperial deep-tech founders are exactly the people who qualify and don't know it. **VCs hear "fintech wedge + clear take-rate business model" right away.**
 * **The 4-Hour Core Loop:**
-* **The Magic Demo Moment:**
-* **4-Hour Feasibility Score:**
+  1. Founder pastes a GitHub URL (public repo, so no auth needed) plus 3 quick inputs: headcount, average engineer salary, and whether they're loss-making.
+  2. The app pulls the last ~100 commits and the README via the GitHub REST API. An LLM groups them into 2–4 "R&D projects" and tags each with: *the advance sought*, *the technological uncertainty*, and *how it was resolved*. These are the three things HMRC's guidelines care about.
+  3. A calculator applies the merged-scheme rates (roughly **15–16p net per £1** of qualifying spend under RDEC, and up to **~27p per £1** for loss-making R&D-intensive SMEs under ERIS) to show a claim range.
+  4. Output: a timeline of commits, colour-coded "Qualifying / Not qualifying / Borderline", plus a copy-ready AIF narrative draft and a "Compliance Confidence" score.
+* **The Magic Demo Moment:** On stage, ask a judge or the audience to shout out **any public GitHub repo**, ideally one from another team building in the room tonight. Paste it. Commits stream into a timeline, the AI highlights the "hard problem" commits in glowing green, and a big counter ticks up to **"You're owed an estimated £18,400 – £31,200."** Then the AIF draft types itself out underneath. Real data, live, from a repo we've never seen.
+* **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + Recharts (commit timeline) + Supabase Edge Function (GitHub fetch + Lovable AI / Gemini call) + Supabase (saved claims, email capture for "get it reviewed by an advisor").
+* **4-Hour Feasibility Score:** 9/10 (One API with no auth, one LLM call with structured JSON output, one calculator. Risk: the unauthenticated GitHub API limit is 60 req/hr per IP, so pre-cache 2 demo repos and add a GitHub token as a Supabase secret. We must also label all outputs "estimate, not tax advice".)
 
-### 🔹 Idea 5: [To be added]
-* **The One-Liner:**
-* **The Audience Resonance:**
-* **The 4-Hour Core Loop:**
-* **The Magic Demo Moment:**
-* **4-Hour Feasibility Score:**
+---
 
-### 🔹 Idea 6: [To be added]
-* **The One-Liner:**
-* **The Audience Resonance:**
+### 🔹 Idea 5: "DepositBack" — AI That Wins Your Tenancy Deposit Back
+* **The One-Liner:** Upload your move-in and move-out photos and enter your tenancy dates. DepositBack uses vision AI to separate "fair wear and tear" (which the landlord legally can't charge for) from real damage, checks whether your deposit was legally protected, and generates a ready-to-submit dispute evidence pack for the free government-backed ADR schemes (DPS / TDS / mydeposits).
+* **The Audience Resonance:** Every London student and young professional in the room has a deposit horror story. They pay London rents, deposits are capped at 5 weeks' rent under the Tenant Fees Act 2019 (often £1,500–£3,000), and landlords regularly take deductions for normal wear. Most tenants don't know that **the burden of proof is on the landlord**, that ADR is free, or that **an unprotected deposit can entitle them to 1–3× the deposit in compensation** (Housing Act 2004, s.214). VCs see a **DoNotPay-style consumer legal-tech wedge** with a clean no-win-no-fee model (25% of recovered funds) and a B2B channel through student unions and university accommodation offices.
 * **The 4-Hour Core Loop:**
-* **The Magic Demo Moment:**
-* **4-Hour Feasibility Score:**
+  1. User enters: deposit amount, tenancy start date, date the deposit was protected (or "I don't know"), the landlord's itemised deductions, and pairs of before/after photos.
+  2. **Protection Check:** if the deposit was protected more than 30 days after it was paid (or wasn't protected at all), a red banner fires: *"You may be entitled to £X–£3X in compensation."*
+  3. **Vision Analysis:** for each photo pair, Gemini vision returns a verdict (*Fair wear and tear / Genuine damage / Insufficient evidence*), a short legal rationale, and the recoverable £ for that deduction line.
+  4. Output: a "Recoverable" total, plus a 1-page PDF-style dispute letter and an evidence pack formatted for the ADR submission.
+* **The Magic Demo Moment:** Drag in two photos: a scuffed wall at move-in and the same wall at move-out, where the landlord charged £180 for "full repaint". The AI draws a highlight box, stamps **"FAIR WEAR & TEAR — NOT CHARGEABLE"**, and the recoverable counter jumps. Then type in a protection date 47 days after payment, and the screen flashes red: **"Your landlord missed the 30-day deadline. You may be owed up to £5,400."** The room gasps because half of them have been there.
+* **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + Supabase Storage (photo upload) + Edge Function calling Lovable AI (Gemini multimodal) + Supabase (cases table) + react-to-print for the dispute letter.
+* **4-Hour Feasibility Score:** 8/10 (Forms, upload, and the protection-date rule are trivial. Vision output can be inconsistent, so constrain it with a strict JSON schema and pre-test 3 demo photo pairs. Legal copy needs a "not legal advice" disclaimer and careful wording.)
+
+---
+
+### 🔹 Idea 6: "Fake Door" — Validate Demand Live, With the Judges as Your First Customers
+* **The One-Liner:** Type a one-sentence startup idea. In 30 seconds Fake Door generates a polished landing page with 3 pricing tiers and a "Pre-order" button, plus a QR code and a **live real-time dashboard** showing visitors, sign-ups, and which price people actually clicked. It measures willingness to pay, not just interest.
+* **The Audience Resonance:** "Have you validated this?" is the #1 question every seed VC asks, and the #1 thing student founders can't answer. This is the Lean Startup / Mom Test "smoke test" turned into a 30-second product. It fits the room perfectly because **every founder in the audience is a potential user, and every VC is a potential distribution partner** (accelerators like Imperial Enterprise Lab, Entrepreneurs First, and YFL itself could run their cohorts through it).
+* **The 4-Hour Core Loop:**
+  1. Founder enters idea + target customer. The LLM returns structured JSON: headline, sub-headline, 3 benefit bullets, 3 pricing tiers, and a CTA.
+  2. The app renders this into a mobile-optimised public page at `/p/:slug` with a generated QR code.
+  3. Visitors can click a pricing tier ("Pre-order £9/mo"). A fake-door modal says "We're not live yet, leave your email to get founder pricing." Every view, click, and email is written to Supabase.
+  4. Founder dashboard uses **Supabase Realtime**: live visitor counter, tier-click bar chart, conversion funnel, and an AI-written "Demand Verdict" (e.g. *"Strong signal: 38% conversion, price-insensitive at £9, test £19 next."*).
+* **The Magic Demo Moment:** Mid-pitch, we put the QR code on the big screen: *"Don't take our word for it. Scan this. You're now our customers."* While we keep talking, the dashboard behind us goes live: **visitor count climbing 4… 11… 27…**, bars filling as judges pick tiers, emails landing in real time. We finish with: *"In the 90 seconds of this pitch, 31 of you visited, 12 pre-ordered, and 58% chose the mid tier. That's validation. And it's the same validation you'd get for your own idea tonight."* The judges are inside the demo, not watching it.
+* **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + `qrcode.react` + Recharts + Supabase (pages, events, leads tables) + **Supabase Realtime** subscriptions + Edge Function calling Lovable AI for page generation.
+* **4-Hour Feasibility Score:** 9/10 (CRUD + realtime + one LLM call are all Lovable's sweet spot. Risks: venue Wi-Fi and audience participation. Mitigate with a dedicated hotspot, a pre-seeded "rehearsal" dataset, and a hidden "simulate traffic" button as a backup if scans are slow. Must test on iOS and Android cameras beforehand.)
 
 ---
 
@@ -89,6 +108,6 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 | **1. DealRoom AI** | | | | | |
 | **2. CoFoundr London** | | | | | |
 | **3. SafeNight London** | | | | | |
-| **4. [Claude Idea 1]** | | | | | |
-| **5. [Claude Idea 2]** | | | | | |
-| **6. [Claude Idea 3]** | | | | | |
+| **4. Claimable** | | | | | |
+| **5. DepositBack** | | | | | |
+| **6. Fake Door** | | | | | |
