@@ -29,6 +29,14 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 * **Tech Stack on Lovable:** React + Tailwind + Lucide Icons + Supabase (storing pitches & leaderboards).
 * **4-Hour Feasibility Score:** 10/10 (Clean forms, cards, radar chart via Recharts, instant response synthesis).
 
+> **🔍 Critique by Claude (Opus):** **Provisional score: 77/100** (Wow 21/30 · Fit 23/25 · Feasibility 24/25 · Commercial 9/20)
+> * ✅ **Strengths:** The best room fit of all six; every judge and attendee instantly gets it. The easiest to build.
+> * ⚠️ **Judges have seen it before:** "AI VC roasts your pitch" is one of the most common hackathon builds of the last two years, and seed VCs will recognise it.
+> * ⚠️ **The valuation invites attack:** A made-up £500k–£2M figure from an LLM is the first thing a real VC will poke at ("on what basis?"). It may also come across as making light of their job.
+> * ⚠️ **No clear paying customer:** Students won't pay for practice pitches. Accelerators might, but that's a small market.
+> * ⚠️ **Everything is simulated:** All output is generated text, so nothing real happens on screen; the radar chart is decoration.
+> * 🔧 **How to fix it:** Get a real judge to pitch live, base the personas on the real investment focus of funds in the room, and replace the valuation with an "investor-readiness" score.
+
 ---
 
 ### 🥈 Idea 2: "CoFoundr London" — The Technical Co-Founder Matcher & Equity Arbiter
@@ -41,6 +49,15 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 * **Tech Stack on Lovable:** React + Tailwind + Framer Motion-style card swipes + Supabase (profiles, matches, equity logs).
 * **4-Hour Feasibility Score:** 9/10 (High visual appeal, card components are standard in Lovable).
 
+> **🔍 Critique by Claude (Opus):** **Provisional score: 67/100** (Wow 18/30 · Fit 20/25 · Feasibility 20/25 · Commercial 9/20)
+> * ✅ **Strengths:** It targets a real, painful problem that the room knows well.
+> * ⚠️ **VCs know this is a crowded graveyard:** YC's Co-Founder Matching is free, and Entrepreneurs First, a London company, is built entirely on this.
+> * ⚠️ **The demo will feel empty:** It's a two-sided marketplace with no users yet, so swiping through fake profiles on stage looks hollow.
+> * ⚠️ **The framework is described wrongly:** Slicing Pie is a *dynamic* model that changes as contributions change. It doesn't produce a one-off fixed split, and a founder in the room may call that out.
+> * ⚠️ **Legal risk:** An AI-generated co-founder agreement is risky to show.
+> * ⚠️ **The swiping is padding:** The Equity Arbiter on its own is the stronger idea.
+> * 🔧 **How to fix it:** Cut the matching entirely and pitch just the equity calculator and agreement tool.
+
 ---
 
 ### 🥉 Idea 3: "SafeNight London" — Hyperlocal Campus Safety & Night Navigator
@@ -52,6 +69,14 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
   3. **The Magic Demo Moment:** A dynamic toggle slider between *"Fastest Walk (12 mins, dark alleys)"* and *"Safest Route (15 mins, active high streets)"*. Moving the slider live on stage reroutes the glowing path, highlights nearby verified safe havens (open shops, security beacons), and calculates a Safety Index score.
 * **Tech Stack on Lovable:** React + Leaflet / Mapbox GL + Tailwind + Supabase (storing student safety pins).
 * **4-Hour Feasibility Score:** 8/10 (Interactive maps are visually stunning; mock coordinates make routing instant).
+
+> **🔍 Critique by Claude (Opus):** **Provisional score: 55/100** (Wow 20/30 · Fit 12/25 · Feasibility 16/25 · Commercial 7/20)
+> * ✅ **Strengths:** Strong emotional pull, and the "fastest vs safest" slider is a nice visual.
+> * ⚠️ **Weakest fit for a seed-VC room:** Consumer safety apps rarely make money (selling to universities is possible), and "safety app" is another hackathon cliché.
+> * ⚠️ **Liability:** Labelling a route "safe" is dangerous, and crowdsourced safety ratings make it worse.
+> * ⚠️ **Hardest to build:** Real routing needs a directions API (OSRM/Mapbox). Mocked coordinates break as soon as a judge asks for a different start point.
+> * ⚠️ **Data questions:** VCs will ask where the lighting and crime data comes from.
+> * ⚠️ **Existing competitors:** Citymapper, WalkSafe+, and Apple and Google adding features.
 
 ---
 
@@ -70,6 +95,9 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 * **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + Recharts (commit timeline) + Supabase Edge Function (GitHub fetch + Lovable AI / Gemini call) + Supabase (saved claims, email capture for "get it reviewed by an advisor").
 * **4-Hour Feasibility Score:** 9/10 (One API with no auth, one LLM call with structured JSON output, one calculator. Risk: the unauthenticated GitHub API limit is 60 req/hr per IP, so pre-cache 2 demo repos and add a GitHub token as a Supabase secret. We must also label all outputs "estimate, not tax advice".)
 
+> **🔍 Critique by Gemini (Antigravity):** **Score: __/100** (Wow __/30 · Fit __/25 · Feasibility __/25 · Commercial __/20)
+> * *(To be added by Gemini)*
+
 ---
 
 ### 🔹 Idea 5: "DepositBack" — AI That Wins Your Tenancy Deposit Back
@@ -83,6 +111,9 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 * **The Magic Demo Moment:** Drag in two photos: a scuffed wall at move-in and the same wall at move-out, where the landlord charged £180 for "full repaint". The AI draws a highlight box, stamps **"FAIR WEAR & TEAR — NOT CHARGEABLE"**, and the recoverable counter jumps. Then type in a protection date 47 days after payment, and the screen flashes red: **"Your landlord missed the 30-day deadline. You may be owed up to £5,400."** The room gasps because half of them have been there.
 * **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + Supabase Storage (photo upload) + Edge Function calling Lovable AI (Gemini multimodal) + Supabase (cases table) + react-to-print for the dispute letter.
 * **4-Hour Feasibility Score:** 8/10 (Forms, upload, and the protection-date rule are trivial. Vision output can be inconsistent, so constrain it with a strict JSON schema and pre-test 3 demo photo pairs. Legal copy needs a "not legal advice" disclaimer and careful wording.)
+
+> **🔍 Critique by Gemini (Antigravity):** **Score: __/100** (Wow __/30 · Fit __/25 · Feasibility __/25 · Commercial __/20)
+> * *(To be added by Gemini)*
 
 ---
 
@@ -98,16 +129,19 @@ This document is the live collaboration workspace between **Gemini (Antigravity)
 * **Tech Stack on Lovable:** React + Tailwind + shadcn/ui + `qrcode.react` + Recharts + Supabase (pages, events, leads tables) + **Supabase Realtime** subscriptions + Edge Function calling Lovable AI for page generation.
 * **4-Hour Feasibility Score:** 9/10 (CRUD + realtime + one LLM call are all Lovable's sweet spot. Risks: venue Wi-Fi and audience participation. Mitigate with a dedicated hotspot, a pre-seeded "rehearsal" dataset, and a hidden "simulate traffic" button as a backup if scans are slow. Must test on iOS and Android cameras beforehand.)
 
+> **🔍 Critique by Gemini (Antigravity):** **Score: __/100** (Wow __/30 · Fit __/25 · Feasibility __/25 · Commercial __/20)
+> * *(To be added by Gemini)*
+
 ---
 
 ## ⚖️ Committee Evaluation & Cross-Critique Matrix
-*(To be completed once all 6 ideas are in)*
+*(Scores out of each column's weight. Ideas 1–3 scored by Claude; Ideas 4–6 to be scored by Gemini. Each model scores the other's ideas.)*
 
 | Idea | Wow Factor / Demo Appeal (30%) | Room & Judge Fit (25%) | 4-Hour Feasibility on Lovable (25%) | Commercial Viability (20%) | Total / 100 |
 |---|---|---|---|---|---|
-| **1. DealRoom AI** | | | | | |
-| **2. CoFoundr London** | | | | | |
-| **3. SafeNight London** | | | | | |
+| **1. DealRoom AI** | 21 (Claude) | 23 (Claude) | 24 (Claude) | 9 (Claude) | **77** (Claude) |
+| **2. CoFoundr London** | 18 (Claude) | 20 (Claude) | 20 (Claude) | 9 (Claude) | **67** (Claude) |
+| **3. SafeNight London** | 20 (Claude) | 12 (Claude) | 16 (Claude) | 7 (Claude) | **55** (Claude) |
 | **4. Claimable** | | | | | |
 | **5. DepositBack** | | | | | |
 | **6. Fake Door** | | | | | |
