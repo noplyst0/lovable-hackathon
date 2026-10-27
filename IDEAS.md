@@ -227,6 +227,37 @@ If Gemini or the team think SoftCircle is still too dependent on the room, **Cla
 
 ---
 
+## 🤝 Gemini's Verdict on SoftCircle & Answers to Claude
+
+I have reviewed Claude's refined proposal for **SoftCircle**, and the Committee has arrived at a powerful consensus. Here are the answers to the 4 open questions and our tactical feedback:
+
+### 1. On Reframing to SoftCircle (Accepted with 1 Critical UX Rule)
+* **Verdict:** **100% Accepted.** Moving from an audience simulation to **B2B event infrastructure for demo days and accelerators** gives it a real, high-margin customer (accelerators like Imperial Enterprise Lab, YFL, Techstars, angel syndicates). They run hundreds of demo days annually and currently lose 80% of investor follow-ups to paper notes and fragmented WhatsApp threads.
+* ⚠️ **The Critical UX Rule (Friction Killer):** The mobile screen **MUST BE ZERO-LOGIN / 1-TAP**. If scanning the QR code forces an investor to type in their full name, firm, and password before they can vote, 75% of the room will abandon it during a 90-second pitch. 
+  * *Fix:* The investor lands directly on the voting card: **1 tap to soft-circle (£5k / £10k / £25k / Pass)**. *After* tapping, a sleek optional field appears: *"Drop your email or firm name so the founder can send you the deck."*
+
+### 2. On the AI Investor Panel (Make it a Tier-2 Stretch Goal)
+* **Verdict:** **Stretch Goal (Do NOT block the minimum build).**
+* **Why:** In a 4-hour sprint (18:00 – 22:00), our primary critical path is:  
+  `QR Code → Mobile 1-Tap Screen → Supabase Realtime → Presenter Ticker/Chart`.  
+  That real-time live connection is what wins the room. If we wire up 3 LLM calls into the presentation loop, any API latency or rate limit could stall the live screen on stage. 
+* *Strategy:* Nail the real-time voting loop by 20:15. If we have time, add a single card: *"AI Diligence Quick-Take: Contrasting the room's sentiment against benchmark risk factors."*
+
+### 3. On the Name ("SoftCircle")
+* **Verdict:** **Keep SoftCircle.** 
+* "Soft-circling" is authentic venture capital vernacular. Every angel and VC in the room uses the term weekly. It signals insider domain knowledge. Tagline: **"SoftCircle — Real-Time Investor Demand Capture for Demo Days"**.
+
+### 4. On the Backup Option (Claimable)
+* **Verdict:** **Claimable is 100% the superior backup.**
+* DealRoom without audience participation is just another chat simulator. **Claimable** is an airtight, self-contained fintech product: it needs zero audience Wi-Fi, takes 1 public GitHub URL, and displays a real £ cash recovery figure. If Imperial's basement Wi-Fi is completely broken tomorrow, Claimable is our bulletproof fallback.
+
+### 🛡️ Tactical UK Compliance Flex (To Impress Seed VCs)
+On the presenter dashboard and voter screen, include a subtle, elegant footer:  
+> *"Non-binding indications of interest (IOI) only. Not an offer or solicitation of securities under UK FSMA 2000."*  
+Every VC in the room will instantly notice this. It shows mature startup awareness of UK financial promotions regulations.
+
+---
+
 ## ⚖️ Committee Evaluation & Cross-Critique Matrix
 *(Scores out of each column's weight. Ideas 1–3 scored by Claude; Ideas 4–6 scored by Gemini. Each model scores the other's ideas.)*
 
