@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TabSplit Big Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  /* /t/:code/screen mockup: projector-first, exactly 100vh, never scrolls (tested at 1280x720) */
+  :root {
+    --bg: oklch(0.965 0.012 85); --paper: oklch(0.985 0.008 85); --ink: oklch(0.17 0.01 60);
+    --muted: oklch(0.45 0.015 60); --line: oklch(0.17 0.01 60 / 18%); --soft: oklch(0.92 0.015 85);
+    --accent: oklch(0.52 0.22 262); --green: oklch(0.6 0.16 150); --red: oklch(0.58 0.22 27);
+    --g1: oklch(0.52 0.22 262); --g2: oklch(0.62 0.2 340); --g3: oklch(0.68 0.15 55);
+    --mono: "JetBrains Mono", ui-monospace, monospace; --display: "Archivo Black", "Archivo", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg); color: var(--ink); font-family: "Archivo", sans-serif; }
+  .grid { height: 100vh; display: grid; grid-template-columns: 330px 1fr 300px; grid-template-rows: 1fr auto; gap: 22px; padding: 26px 30px 22px; }
+  .card { background: var(--paper); border: 2px solid var(--line); border-radius: 18px; padding: 20px 22px; min-height: 0; overflow: hidden; }
+  .kicker { font: 700 13px var(--mono); letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .join { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  #qr { margin: 14px 0 12px; padding: 10px; background: #fff; border-radius: 12px; }
+  .code { font: 400 84px/1 var(--display); letter-spacing: 6px; }
+  .hint { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .h { font: 400 30px/1.1 var(--display); margin: 4px 0 14px; }
+  .items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid var(--line); border-radius: 12px; height: 62px; }
+  .item .nm { flex: 1; font: 600 18px "Archivo"; }
+  .item .pr { font: 700 18px var(--mono); }
+  .item.claimed { border-color: oklch(0.6 0.16 150 / 60%); background: oklch(0.6 0.16 150 / 8%); }
+  .item.open { border-color: oklch(0.58 0.22 27 / 60%); background: oklch(0.58 0.22 27 / 12%); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { background: oklch(0.58 0.22 27 / 22%); } }
+  .av { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 800 13px "Archivo"; color: #fff; border: 2px solid var(--paper); }
+  .av.e { background: var(--soft); font-size: 16px; }
+  .avs { display: flex; } .avs .av + .av { margin-left: -9px; }
+  .person { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .person b { flex: 1; font-size: 18px; }
+  .person .amt { font: 700 18px var(--mono); }
+  .new { font: 700 11px var(--mono); color: var(--accent); margin-left: 6px; }
+  .bottom { grid-column: 1 / -1; display: flex; align-items: center; gap: 22px; }
+  .bar { flex: 1; height: 22px; border-radius: 12px; background: var(--soft); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 83.5%; background: var(--green); }
+  .big { font: 700 26px var(--mono); white-space: nowrap; }
+  .pill { font: 700 18px var(--mono); color: var(--red); border: 2px solid var(--red); border-radius: 999px; padding: 8px 18px; white-space: nowrap; animation: pulse 1.6s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="card join">
+    <div class="kicker">Scan to join the table</div>
+    <div id="qr"></div>
+    <div class="kicker">or type the code</div>
+    <div class="code">K7Q2</div>
+    <div class="hint">No app. No sign-up. Tap what you ate.</div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">Dishoom Kensington · items mode</div>
+    <div class="h">Who had what?</div>
+    <div class="items">
+      <div class="item claimed"><span class="nm">Chicken Ruby</span><span class="avs"><span class="av e">🧄</span></span><span class="pr">£15.90</span></div>
+      <div class="item claimed"><span class="nm">House Black Daal <span style="font:13px var(--mono);color:var(--muted)">÷2</span></span><span class="avs"><span class="av e">🧄</span><span class="av" style="background:var(--g2)">P</span></span><span class="pr">£9.90</span></div>
+      <div class="item claimed"><span class="nm">Lamb Biryani</span><span class="avs"><span class="av" style="background:var(--g3)">T</span></span><span class="pr">£16.90</span></div>
+      <div class="item claimed"><span class="nm">Garlic Naan</span><span class="avs"><span class="av" style="background:var(--g2)">P</span></span><span class="pr">£4.50</span></div>
+      <div class="item claimed"><span class="nm">Garlic Naan</span><span class="avs"><span class="av" style="background:var(--g1)">F</span></span><span class="pr">£4.50</span></div>
+      <div class="item open"><span class="nm">Okra Fries</span><span class="pr">£5.50</span></div>
+      <div class="item open"><span class="nm">Mango Lassi</span><span class="pr">£5.50</span></div>
+      <div class="item claimed"><span class="nm">Masala Chai</span><span class="avs"><span class="av e">🧄</span></span><span class="pr">£3.90</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">At the table · 5</div>
+    <div style="margin-top:8px">
+      <div class="person"><span class="av e">🧄</span><b>Garlic Naan Bandit</b><span class="amt">£27.85</span></div>
+      <div class="person"><span class="av" style="background:var(--g3)">T</span><b>Tom</b><span class="amt">£19.01</span></div>
+      <div class="person"><span class="av" style="background:var(--g2)">P</span><b>Priya</b><span class="amt">£10.63</span></div>
+      <div class="person"><span class="av" style="background:var(--g1)">F</span><b>Faizan <span style="font:600 13px Archivo;color:var(--muted)">host</span></b><span class="amt">£5.06</span></div>
+      <div class="person" style="border-bottom:0"><span class="av e">🥟</span><b>Momo Menace<span class="new">JUST JOINED</span></b><span class="amt" style="color:var(--muted)">£0.00</span></div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <span class="big">£62.55 <span style="font-weight:400;color:var(--muted)">of £74.93 claimed</span></span>
+    <div class="bar"><i></i></div>
+    <span class="pill">⚠ 2 unclaimed · £11.00</span>
+  </div>
+</div>
+<script>
+  if (window.QRCode) new QRCode(document.getElementById("qr"), { text: "https://tabsplit.lovable.app/t/K7Q2", width: 236, height: 236 });
+</script>
+</body>
+</html>

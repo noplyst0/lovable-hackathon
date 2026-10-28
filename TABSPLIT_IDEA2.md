@@ -328,7 +328,7 @@ $$;
 >   - Settled: ✅ + confetti.
 >   - The host sees a permanent **Lock bill** button in the footer and a ⚙️ menu (mode, add person, reset, share/QR, big screen).
 > - `/t/:code/screen`: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, items with claimer chips (unclaimed pulse red), people + totals, and a progress bar.
-> Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: [Prompt 0 design line]. Don't write tests or run browser checks.
+> Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: [Prompt 0 design line]. The attached images are layout references for Pick, Table, Pay, Track, the wheel and the big screen (1280×720); where an image and this text differ, this text wins. Don't write tests or run browser checks.
 
 ### (free) Claude: `enable_database` → §6 SQL → seed `DEMO` → verify with a `select`.
 
