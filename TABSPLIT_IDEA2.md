@@ -4,7 +4,8 @@
 **Time Limit:** 4 Hours (18:00 – 22:00) | **Target Event:** Lovable Buildathon, Imperial Entrepreneurs x YFL  
 **Spec owner:** Claude (lead). Argon checks it at the points marked 🔍.
 
-> v1 (Gemini's original proposal) is in git history. v2 keeps the core idea and fixes the facts that were wrong, adds what was missing, cuts what we shouldn't build, and adds the build prompts, SQL, maths and timetable.
+> v1 (Gemini's original proposal) is in git history. v2 keeps the core idea and fixes the facts that were wrong, adds what was missing, cuts what we shouldn't build, and adds the build prompts, SQL, maths and timetable.  
+> **v2.1 (28 Oct):** Argon's red-team review applied. What changed, and where Claude disagreed, is in **§15**.
 
 ---
 
@@ -25,7 +26,7 @@
 ---
 
 ## 1. The Idea (One Paragraph)
-When the bill comes, the host snaps the receipt and AI turns it into a list of items in a few seconds. A QR code appears. Everyone scans it, types their first name, and taps what they had. Shared dishes split automatically between everyone who tapped them. The table screen fills in live: every item shows the faces of who claimed it, and anything nobody has claimed pulses red (*"Who had the garlic naan? 👀"*). Each phone shows that person's exact share, including their fair part of the service charge, with a **Pay [host] on Monzo** button that already has the amount filled in. When everyone has paid, the bill goes green. **The point is that nobody leaves owing the host money.**
+When the bill comes, the host snaps the receipt and AI turns it into a list of items in a few seconds. A QR code appears. Everyone scans it and taps what they had, with no sign-up and not even a name to type (they get a funny food alias they can rename). Shared dishes split automatically between everyone who tapped them. The table screen fills in live: every item shows the faces of who claimed it, and anything nobody has claimed pulses red (*"Who had the garlic naan? 👀"*). Each phone shows that person's exact share, including their fair part of the service charge, with a **Pay [host] on Monzo** button that already has the amount filled in. When everyone has paid, the bill goes green. **The point is that nobody leaves owing the host money.**
 
 ---
 
@@ -42,8 +43,9 @@ When the bill comes, the host snaps the receipt and AI turns it into a list of i
 
 **Business story (keep it modest):**
 1. **Growth:** every bill puts TabSplit in front of ~6 people who didn't install anything. Each guest is a future host.
-2. **Revenue (to test):** venues pay for the "settled" screen, e.g. *"Back within 30 days? 10% off"*, shown at the moment of highest goodwill. Student societies' treasurers (they front the bill at every social) get a paid "Society" tier.
-3. **Don't claim** neobank affiliate fees, a market size, or a take rate.
+2. **Where the money is (the bet):** today guests pay the *host*. Next, guests **pay the venue directly by bank (Open Banking pay-by-bank) from the same screen**, so each person settles their own share at the table. The venue pays lower fees than on cards and turns the table faster, and we take a small cut of the saving. No POS hardware needed, unlike Sunday/me&u.
+3. **Side bet:** a paid tier for student society treasurers, who front the bill at every social.
+4. **Don't claim** neobank affiliate fees, a market size, specific fee percentages, or that we're already regulated. Pay-by-bank needs an FCA-authorised partner. Say "via a licensed provider".
 
 > If a judge says "Splitwise just launched this", **agree**: *"Yes, two weeks ago, which tells you the problem is real. Their answer ends with an IOU. Ours ends with the host paid before the waiter is back."*
 
@@ -67,14 +69,16 @@ When the bill comes, the host snaps the receipt and AI turns it into a list of i
 ## 4. Feature List
 
 ### 🟢 MUST (the demo doesn't work without these)
-1. **Start a bill**, from either:
+1. **Start a bill**, from one of:
    - **"Use demo receipt"**: a pre-parsed seeded Dishoom bill. Always works, needs no AI and no Wi-Fi luck.
+   - **"Tonight's receipt"**: a photo taken and uploaded during rehearsal, parsed live on stage with one tap. **No camera picker on stage.**
    - **"Snap receipt"**: the camera/photo upload calls the AI parser (§8).
-2. **Host details:** host first name, Monzo username (optional), Revolut tag (optional). The host is also a guest and claims their own food.
-3. **Review & fix screen:** edit name or price, delete, add an item. Shows *"Items add up to £X · receipt says £Y"* if they differ. Service setting: **Already on receipt (£X)** / **Add 10% / 12.5% / 15%** / **None**.
-4. **Join:** QR + 6-letter code. The guest types **only a first name** and gets an auto colour/emoji. Their identity is kept in `localStorage` so a refresh doesn't create a duplicate.
-5. **Claim:** tap to claim, tap again to unclaim. If several people claim one item, it splits equally. Other claimers show as avatar chips.
-6. **Live sync** across every phone and the table screen (Supabase Realtime). On any change, refetch the bill and recompute.
+2. **Host details:** host first name, Monzo username (optional), Revolut tag (optional). The host is also a guest and **claims their own food from their phone** (#5b).
+3. **Review & fix (step 2 of `/new`, not a separate route):** edit name or price, delete, add an item. Shows *"Receipt says £Y, we count £X (items + service)"* if they differ. Service setting: **Already on receipt (£X)** / **Add 10% / 12.5% / 15%** / **None**.
+4. **Join with zero typing:** QR + 6-letter code. On load, the guest instantly gets a **funny food alias + emoji** (*"Garlic Naan Bandit 🧄"*) with an optional inline "That's me: ___" rename. They can tap dishes from second 1. The guest row is **created on their first tap**, so people who only scan don't show up as £0 guests. Identity lives in `localStorage`.
+5. **Claim:** tap to claim, tap again to unclaim. If several people claim one item, it splits equally. Other claimers show as avatar chips.  
+   **5b. Host claims:** the table screen's ⚙️ shows a small **"Claim as host"** QR (`/j/:code?g=<host_guest_id>`). The host scans it once and their phone takes on the host identity. No duplicate guest.
+6. **Live sync** across every phone and the table screen (Supabase Realtime). On a change: **debounced refetch (250ms), latest response wins**, taps waiting to save stay layered on top until confirmed, plus a refetch on reconnect / when the phone wakes (`visibilitychange`).
 7. **Correct maths:** integer pence, exact totals, service charged proportionally and never doubled (Appendix A).
 8. **Table screen** (projector/laptop): items with claimer chips, **unclaimed items pulsing red**, a progress bar (*"£142.50 of £180.00 claimed"*), people with totals, and a big QR.
 9. **Your share + pay** on the phone: a sticky footer with *"Your share £16.88 (incl. £1.88 service)"*, then **Pay on Monzo** (amount filled in), **Revolut** (plain link), **Copy amount**, then **"I've paid"**, which shows a ✅ on the table screen.
@@ -82,14 +86,15 @@ When the bill comes, the host snaps the receipt and AI turns it into a list of i
 
 ### 🟡 SHOULD (big payoff for little build)
 11. **"Who had the …? 👀" banner** when only 1–2 items are left unclaimed.
-12. **Everyone paid → confetti** and a big green "Settled ✅" on the table screen. This is the closing shot of the pitch.
+12. **Everyone paid → confetti** and a big green "Settled ✅" on the table screen. This is the closing shot of the pitch. Fire it **only when `isSettled()` is true** (Appendix A): everything claimed, at least one non-host owes money, and all of them have paid. A plain `.every()` is true on an empty table.
+12b. **"Chase on WhatsApp"** button (host): opens `https://wa.me/?text=…` with *"Still owed for Dishoom 🧾 Tom £23.51 · Jess £17.89, pay here: <link>"*. Text only, no image card. It's one link and fits "get paid" exactly.
 13. **Lock bill** (host): freezes claims so amounts stop moving before people pay. Before it's locked, the pay sheet warns *"Bill not fully claimed yet, your share may change."*
 14. **Host controls:** reset claims (between rehearsals), remove a guest, mark someone paid by hand.
 15. **Simulate table** (hidden, `?demo=1`): 4 fake guests claim items with staggered delays. **Only used if the audience can't scan**, and say so out loud if it is.
 
 ### 🔵 STRETCH (only if everything above is done by 20:15)
 16. **"Say what you had"**: a guest types *"the lamb and half the naans with Priya"* and Lovable AI ticks the items. A strong second wow moment that AI makes cheap, but it's another AI call that can fail.
-17. Discount/promo lines spread across everyone automatically. In the MVP, the host edits prices instead.
+17. Discount/promo lines spread across everyone automatically. **In the MVP there are no negative items.** The parser reports a discount separately and the host edits prices (§8).
 18. Bills expire after 48h.
 
 ### 🔴 DON'T BUILD (time sinks, risks, or scope creep)
@@ -107,18 +112,17 @@ When the bill comes, the host snaps the receipt and AI turns it into a list of i
 
 | Route | Who | What |
 |---|---|---|
-| `/` | Host | Hero line *"Split the bill. Get paid before anyone stands up."* Buttons: **Snap receipt** / **Use demo receipt**. |
-| `/new` | Host | Photo upload (or the demo receipt), host name, Monzo username, Revolut tag → creates the bill and the host guest. |
-| `/b/:code/review` | Host | Edit items, check totals, choose service mode → **Open the table**. |
+| `/` | Host | Hero line *"Split the bill. Get paid before anyone stands up."* Buttons: **Snap receipt** / **Tonight's receipt** / **Use demo receipt**. |
+| `/new` | Host | **Step 1:** photo (or preset), host name, Monzo username, Revolut tag → creates the bill and the host guest. **Step 2 (same route):** edit items, check totals, choose service mode → **Open the table**. |
 | `/b/:code` | Table screen | Built for **16:9 projector**, readable from 10m. Left: receipt items + chips + red pulse. Right: big QR + code, people list (avatar, name, total, ✅). Top: progress bar. Host controls behind a small ⚙️. |
-| `/j/:code` | Guest phone | Name entry (first visit) → item cards (big tap targets) → "Still unclaimed" section on top → sticky footer with share + **Pay**. |
+| `/j/:code` | Guest phone | Instant food alias (rename optional) → item cards (big tap targets) → "Still unclaimed" section on top → sticky footer with share + **Pay**. `?g=<guest_id>` takes on that identity (host link). |
 
 **Design direction:** "receipt paper", meaning an off-white background, ink-black text, prices in a monospace font, and one bold accent. Green = claimed, red pulse = unclaimed. Large type. Mobile-first for `/j`, projector-first for `/b`. **Don't** imitate Monzo's or Revolut's branding. Plain "Pay on Monzo" text buttons are fine.
 
 ---
 
 ## 6. Data Model (Lovable Cloud / Postgres)
-Claude can run this directly through the Lovable MCP `query_database` tool (no build credits), or Lovable runs it as a migration from Prompt 1.
+Claude can run this directly through the Lovable MCP `query_database` tool (no build credits), between Prompts 1a and 1b (§9).
 
 ```sql
 create table bills (
@@ -192,50 +196,60 @@ create policy "public claims" on claims for all using (true) with check (true);
 4. Service is shared **in proportion to each person's food**, using the same exact allocation. Service on **unclaimed** items stays unallocated and shows in "remaining".
 5. When everything is claimed, **sum of shares = receipt total, to the penny.** If not, it's a bug.
 6. The host's own share is shown as *"Your part (you paid the restaurant)"*. No pay button for the host.
+7. **Review check** compares `receipt_total_pence` with **items + service** (`billTotal`), never items alone, or every London receipt with service printed shows a false error.
+8. **No negative items.** Discounts aren't claimable rows (§8).
+9. **Settled** = `isSettled()`, never a bare `.every()` over guests.
 
-Reference implementation (tested): **Appendix A**. Claude pushes it as `src/lib/split.ts` through GitHub sync so Lovable doesn't have to write the maths.
+Reference implementation (tested): **Appendix A**. Prompt 1a pastes it in as `src/lib/split.ts`, so Lovable doesn't have to write the maths. Claude checks it with `read_file`.
 
 ---
 
 ## 8. Receipt Parsing (Edge Function `parse-receipt`)
-- **Client:** resize the photo to ≤1600px JPEG, send base64 to the edge function.
-- **Server:** call **Lovable AI** (built in, no API key) with a vision-capable Gemini model. Use **tool calling / a strict JSON schema**, not free text:
+- **Client:** `<input type="file" accept="image/*">` (iOS Safari normally converts HEIC to JPEG for this). Resize to ≤1600px JPEG on a canvas. **If the image won't decode (e.g. a HEIC file on desktop Chrome), send the original file as-is** rather than failing silently. Show a "Reading receipt…" state with a progress shimmer, because it takes 5–12s.
+- **Server:** call **Lovable AI, the built-in gateway (`LOVABLE_API_KEY`, already set by Lovable Cloud)**, with its default vision-capable Gemini model. **Never ask the user for an OpenAI/Gemini key.** Use **tool calling / a strict JSON schema**, not free text:
 ```json
 {
   "restaurant_name": "string",
   "items": [{ "name": "string", "quantity": 1, "line_total_pence": 450 }],
   "service_charge_pence": 759,
+  "discount_pence": null,
   "receipt_total_pence": 6829
 }
 ```
-- **Instructions to the model:** prices in integer pence. `line_total_pence` is the price printed on that line. Ignore VAT summaries, card/payment lines, table numbers and "covers". If a service/"optional gratuity" line is printed, put it in `service_charge_pence` and **not** in items, otherwise null. Discounts are items with negative pence.
+- **Instructions to the model:** prices in integer pence. `line_total_pence` is the price printed on that line. Ignore VAT summaries, card/payment lines, table numbers and "covers". If a service/"optional gratuity" line is printed, put it in `service_charge_pence` and **not** in items, otherwise null. **Discounts go in `discount_pence` (positive number), never in items.** If there's a discount, the review step shows *"Receipt has a £X discount: edit prices to apply it."*
 - **After the parse:** turn each line into `quantity` rows of `line_total/quantity` (spread leftover pennies). Set `service_mode = 'included'` if a service charge was found, otherwise `'add'` at 12.5%. Always land on the **review** screen.
-- **If the parse fails or times out (>15s):** *"Couldn't read that one. Fix it by hand or use the demo receipt."* Never a dead end.
+- **If the parse fails or times out (>20s):** *"Couldn't read that one. Fix it by hand or use the demo receipt."* Never a dead end.
 - Each parse uses Lovable AI usage from the same balance as credits. **Parse the demo receipt once in rehearsal and keep the result** as the seeded bill.
 
 ---
 
 ## 9. Lovable Build: Prompt Pack & Credit Budget
 
-### Credits (8 credits is very tight, so read this)
+### Credits
+- **The hackathon provides more credits. Our current 8 are only for the test run.** Test-run budget: ≤3 credits (Prompts 1a + 1b, maybe 2).
 - Per the Lovable MCP docs, **only `create_project` and `send_message` use build credits.** These don't: reading files/diffs, `query_database` (SQL), project knowledge, deploy. Neither do code pushed through **GitHub sync** or edits in Lovable's code editor. *(Confirm all of this in the test run.)*
-- The message cost depends on complexity. A big prompt costs more than a small one but less than 4 small ones. **Plan: 3 build messages + 2 spares on the day.** Claude makes small fixes through GitHub, for free.
-- **Ask the organisers whether attendees get Lovable credits** (buildathons usually hand out codes). If not, one month of Pro (~100 credits) is cheap insurance.
-- **Test run budget: ≤3 credits.** Prompts 1 and 2 only, to measure the real cost per message and check the free paths.
+- **Plan on the day: 4 build messages (1a, 1b, 2, 3) + spares.** Claude makes small fixes through GitHub, for free.
+- **Order on the day:** `create_project` (Prompt 1a) → Claude runs `enable_database` + the §6 SQL + seed via `query_database` (free) → Prompt 1b wires it up.
 
-### Prompt 0: Project Knowledge (free; set via MCP before Prompt 1)
+### Prompt 0: Project Knowledge (free; set via MCP right after `create_project`, before 1b)
 > TabSplit: a no-login web app for splitting a restaurant bill item by item. Money is ALWAYS integer pence; never use floats for money and never add VAT (UK prices include it). Use the existing `src/lib/split.ts` for every money calculation; do not reimplement it. Guest identity is `localStorage` key `tabsplit:guest:<code>`. QR codes encode `window.location.origin + '/j/' + code`. Keep components small. Do not add auth, accounts, payments processing, or routes not in the spec. Design: receipt-paper off-white, ink-black text, monospace prices, green = claimed, pulsing red = unclaimed.
 
-### Prompt 1: Foundation (1 message)
-> Build TabSplit, a mobile-first web app for splitting a restaurant bill item by item. Enable Lovable Cloud. Create these tables exactly: [paste §6 SQL]. Seed bill `DEMO42` "Dishoom Kensington" with these items in pence: [list]. Service included 12.5%.
-> Routes: `/` hero ("Split the bill. Get paid before anyone stands up.") with "Use demo receipt" (goes to `/b/DEMO42`) and "Start a bill" (`/new`, a form for host name, Monzo username and Revolut tag; creates a bill with a random 6-char code, adds the host as a guest with is_host=true, then goes to `/b/:code/review`). `/b/:code/review`: editable item list (name, price in £, delete, add), a check that shows "Items add up to £X, receipt says £Y", a service-mode selector (Already on receipt £ / Add 10, 12.5, 15% / None), and an "Open the table" button. `/b/:code`: a 16:9 table screen with items on the left (avatar chips of claimers, unclaimed items pulse red), on the right a big QR (qrcode.react) of `/j/:code`, the code in large type, and the list of people with totals and a ✅ when paid, plus a progress bar on top. `/j/:code`: if there's no guest in localStorage, ask only for a first name (assign a random colour); then show items as big tappable cards, where a tap inserts a claim and a second tap deletes it; "Still unclaimed" first; a sticky footer shows "Your share £X (incl. £Y service)".
-> Realtime: on `/b/:code` and `/j/:code`, subscribe to postgres_changes on bills, items, guests and claims filtered by bill_id; on any event refetch the bill and recompute. Use optimistic updates for taps. All totals come from `computeSplit` in `src/lib/split.ts` [if it's not in the repo yet, create it with exactly this code: paste Appendix A].
+### Prompt 1a: UI Shell (1 message, sent as `create_project`'s `initial_message`)
+> Build the UI for TabSplit, a mobile-first web app for splitting a restaurant bill item by item. **UI only for now, with no backend:** use typed mock data in `src/lib/mock.ts` shaped exactly like these tables: bills (id, code, restaurant_name, host_monzo, host_revolut, service_mode 'none'|'add'|'included', service_rate, service_included_pence, receipt_total_pence, status 'open'|'locked'|'settled'), items (id, bill_id, name, price_pence, position), guests (id, bill_id, name, color, is_host, paid_at), claims (id, bill_id, item_id, guest_id). Money is integer pence everywhere. Create `src/lib/split.ts` with exactly this code and use it for every total: [paste Appendix A].
+> Routes: `/` hero ("Split the bill. Get paid before anyone stands up.") with buttons Snap receipt, Tonight's receipt, Use demo receipt (→ `/b/DEMO42`). `/new`: step 1 is a form (host name, Monzo username, Revolut tag); step 2, on the same route, is an editable item list (name, price in £, delete, add), a check "Receipt says £Y, we count £X (items + service)", a service selector (Already on receipt £ / Add 10, 12.5, 15% / None) and "Open the table". `/b/:code`: a 16:9 projector screen with items on the left (claimer avatar chips; unclaimed items pulse red), on the right a big QR (qrcode.react) of `window.location.origin + '/j/' + code`, the code in large type, and the list of people with totals and ✅ when paid; a progress bar on top. `/j/:code`: no name gate; give the guest a random funny food alias + emoji ("Garlic Naan Bandit 🧄") with an optional inline rename; big tappable item cards (tap = claim, tap again = unclaim, several claimers = shared); "Still unclaimed" first; a sticky footer "Your share £X (incl. £Y service)".
+> Design: receipt-paper off-white, ink-black text, monospace prices, one bold accent, green = claimed, pulsing red = unclaimed. Large type, mobile-first for `/j`, projector-first for `/b`.
+
+### (Between 1a and 1b, free) Claude: `enable_database` → run §6 SQL → seed `DEMO42` via `query_database` → verify with a `select`.
+
+### Prompt 1b: Wire Data + Realtime (1 message)
+> The tables bills, items, guests and claims already exist in Lovable Cloud with seed bill `DEMO42`. Do not create or alter tables. Replace the mock data with real queries. `/new` step 1 creates a bill with a random 6-char code (no 0/O/1/I) and a host guest (is_host=true), saving the host guest id in localStorage key `tabsplit:guest:<code>`. On `/j/:code`, create the guest row on the guest's **first tap**, not on page load, and save its id in the same key; if the URL has `?g=<guest_id>`, adopt that id. Taps insert/delete claims optimistically.
+> Realtime on `/b/:code` and `/j/:code`: subscribe to postgres_changes with filter **`id=eq.<bill.id>` for bills** and **`bill_id=eq.<bill.id>` for items, guests and claims**. On any event, do a **debounced (250ms) refetch** of the bill; ignore responses older than the latest request; keep taps that are still saving layered on top until they're confirmed. Also refetch on channel reconnect and on `visibilitychange` when the page becomes visible. On `/b/:code`, the ⚙️ menu shows a small "Claim as host" QR of `/j/:code?g=<host guest id>`.
 
 ### Prompt 2: Receipt Photos (1 message)
-> Add "Snap receipt" to `/new`: a camera/file input that resizes the photo to max 1600px JPEG and sends it to a new edge function `parse-receipt`. The function uses Lovable AI with a vision Gemini model and tool calling to return exactly this JSON: [paste §8 schema + instructions]. Turn quantities into separate unit rows, set service mode as in §8, save items, and go to the review screen. On error or after 15s, show "Couldn't read that one. Fix it by hand or use the demo receipt." Don't change any other screen.
+> Add "Snap receipt" and "Tonight's receipt" to `/new`. Snap: `<input type="file" accept="image/*">`, resize to max 1600px JPEG on a canvas, and if the image can't be decoded, send the original file. Tonight's receipt: a photo stored in the `receipts` storage bucket (create it, public read) that is sent to the parser with one tap. Both go to a new edge function `parse-receipt` that uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`; do not ask me for any API key**, with the default vision-capable Gemini model and tool calling, returning exactly this JSON: [paste §8 schema + instructions]. Turn quantities into separate unit rows (spread leftover pennies), never create negative items, set service mode as in §8, save items and land on `/new` step 2. Show "Reading receipt…" while it works. On error or after 20s, show "Couldn't read that one. Fix it by hand or use the demo receipt." Don't change any other screen.
 
 ### Prompt 3: Pay & Polish (1 message)
-> On `/j/:code` the sticky footer opens a sheet with: "Pay [host] on Monzo" (link `https://monzo.me/<host_monzo>/<amount>?d=TabSplit <restaurant>`; hide if no username), "Revolut" (`https://revolut.me/<tag>`, hide if none), "Copy amount", and an "I've paid" button that sets guests.paid_at. If the bill isn't locked, show "Bill not fully claimed yet, your share may change." The host guest sees "Your part (you paid the restaurant)" with no pay buttons. On `/b/:code`: show a banner "Who had the <item>? 👀" when 1–2 items remain unclaimed; when every non-host guest has paid, show full-screen "Settled ✅" with confetti (canvas-confetti); behind a ⚙️ button add Lock bill, Reset claims, Remove guest, Mark paid. With `?demo=1`, add a "Simulate table" button that adds 4 guests (Priya, Tom, Sam, Jess) who claim random unclaimed items with 1–2s delays. Don't change the maths or the data model.
+> On `/j/:code` the sticky footer opens a sheet with: "Pay [host] on Monzo" (link `https://monzo.me/<host_monzo>/<amount>?d=TabSplit <restaurant>`; hide if no username), "Revolut" (`https://revolut.me/<tag>`, hide if none), "Copy amount", and an "I've paid" button that sets guests.paid_at. If the bill isn't locked, show "Bill not fully claimed yet, your share may change." The host guest sees "Your part (you paid the restaurant)" with no pay buttons. On `/b/:code`: show a banner "Who had the <item>? 👀" when 1–2 items remain unclaimed; show full-screen "Settled ✅" with confetti (canvas-confetti) **only when `isSettled()` from `src/lib/split.ts` returns true**; behind a ⚙️ button add Lock bill, Reset claims, Remove guest, Mark paid, and "Chase on WhatsApp" (opens `https://wa.me/?text=` with "Still owed for <restaurant> 🧾 <name> £x · <name> £y, pay here: <join link>" for unpaid guests who owe money). With `?demo=1`, add a "Simulate table" button that adds 4 guests (Priya, Tom, Sam, Jess) who claim random unclaimed items with 1–2s delays. Don't change the maths or the data model.
 
 ### Spare messages (2)
 Bug fixes Lovable is better at than a git push (layout, responsive issues). **Never use a credit to argue with a broken layout. Roll back instead** (§10, rule 2).
@@ -248,7 +262,7 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 |---|---|---|
 | **Claude** (lead) | Owns the spec, prompts, SQL, maths and git pushes. Reviews every Lovable output through MCP `read_file` / `get_diff` and checks the DB with `query_database`. | Continuous |
 | **Argon** 🔍 | Critic/second opinion at fixed checkpoints only (usage limits). | ~4 calls total |
-| **Lovable** | UI scaffolding, Cloud DB, Lovable AI, hosting. | 3 + 2 spare messages |
+| **Lovable** | UI scaffolding, Cloud DB, Lovable AI, hosting. | 4 + spare messages |
 | **Humans** | Phones, real-world testing, the pitch. | Always |
 
 **Argon checkpoints 🔍 (each one is a single prompt, so each is worth it):**
@@ -267,7 +281,10 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 
 ## 11. Test Run Checklist (before the hackathon)
 - [ ] Lovable MCP connected and authenticated. `list_workspaces` works.
-- [ ] Cost of Prompt 1 and Prompt 2 in credits, written down here.
+- [ ] Cost of Prompts 1a, 1b (and 2 if run) in credits, written down here.
+- [ ] The host link (`?g=`) on a phone takes on the host identity, with no duplicate guest.
+- [ ] Scanning without tapping creates no guest row. Rapid taps on 3 phones don't flicker back.
+- [ ] An iPhone photo (HEIC) uploads from Safari AND from a Mac in Chrome.
 - [ ] `query_database` is free and can create/alter tables.
 - [ ] A Claude push to the GitHub repo shows up in Lovable, costs no credits, and **edge functions redeploy** after a push (or not, so we know).
 - [ ] Realtime works across 2+ phones on **4G and venue-style Wi-Fi**, including unclaim (DELETE).
@@ -284,8 +301,8 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 
 | Time | What | Credits |
 |---|---|---|
-| 18:00–18:15 | Claude: `create_project` with Prompt 1, set Prompt 0 knowledge, verify tables + seed via SQL, push `split.ts` | 1 |
-| 18:15–19:00 | Fix what Prompt 1 got wrong (git pushes). **2 phones claiming DEMO42 live by 19:00.** | 0 |
+| 18:00–18:20 | Claude: `create_project` with Prompt 1a, set Prompt 0 knowledge, `enable_database`, run §6 SQL + seed (free) | 1 |
+| 18:20–19:00 | Prompt 1b (data + realtime), then fix what it got wrong (git pushes). **2 phones claiming DEMO42 live by 19:00.** | 1 |
 | 19:00–19:40 | Prompt 2 (receipt photos). Test with the real receipt from tonight's food. | 1 |
 | 19:40–20:20 | Prompt 3 (pay + polish). Publish. QR points at the published URL. | 1 |
 | 20:20–20:30 | Spare message only if something big is broken. | 0–1 |
@@ -302,7 +319,7 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 > *"Hands up if you've been at a group dinner and when the bill arrived, everyone went quiet?"* (Hands go up.) *"Twenty minutes of phone calculators. Someone says 'I didn't have wine'. Someone forgets the service. And one person puts their card down and spends the next week chasing friends on Monzo."*
 
 **[0:25–1:05] The demo: judges are the dinner party**
-> *"This is our receipt from the food tonight."* (Snap it live → items appear in a few seconds. **If the parse is slow, tap "Use demo receipt" and keep talking.**) *"Scan the code and tap what you ate."* (Wait 5s.) Point at the screen as chips appear: *"Shared the pizza? Tap it too, and it splits between you automatically, service charge and all, down to the penny."*
+> *"This is our receipt from the food tonight."* (Hold up the paper, tap **Tonight's receipt**, and the AI reads it live in a few seconds. No camera picker on stage. **If the parse is slow, tap "Use demo receipt" and keep talking.**) *"Scan the code and tap what you ate. No sign-up, not even your name."* (Wait 5s. Funny aliases start popping up on the big screen.) Point at the screen as chips appear: *"Shared the pizza? Tap it too, and it splits between you automatically, service charge and all, down to the penny."*
 
 **[1:05–1:30] The laugh + the money**
 > Point at the red pulsing item: *"And there's always one: who had the garlic bread? 👀"* *"Now look at your phone. That's your exact share, and one tap opens Monzo with the amount already filled in."* (One teammate pays for real → ✅ on screen.)
@@ -317,7 +334,8 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 ## 14. Q&A Prep
 
 * **"Doesn't Splitwise do this now?"** *"Since 14 October, yes, which validates the problem. Splitwise is a ledger: the result is a balance you settle later. We're built for the 5 minutes at the table: one shared screen, UK bank links with the amount filled in, and a bill that isn't done until the host is paid."*
-* **"How do you make money?"** *"Honestly, we're consumer-first right now. Every bill is a free acquisition of ~6 people. The test is venues paying for the 'settled' screen, like a return-visit offer at the moment of highest goodwill, and a paid tier for society treasurers who front every social."*
+* **"How do you make money?"** *"Consumer-first today: every bill reaches ~6 people for free. The money is in the next step: each guest pays the venue directly by bank from this same screen, through a licensed pay-by-bank provider. The venue saves on card fees and turns the table faster, with no hardware, and we take a cut of that saving."*
+* **"Why won't Monzo add receipt scanning, or Splitwise add bank links, tomorrow?"** *"They might. Monzo only works if the whole table banks with Monzo, and half of any table doesn't. We're bank-neutral. Splitwise is built around a ledger you keep coming back to. We're built for the five minutes at the table. Our edge is speed and focus, and what we'd measure first is whether groups come back to it."*
 * **"What if someone claims the wrong thing?"** *"Tap again to unclaim. And the table screen is in front of everyone, so mistakes get noticed. The host can lock the bill once everyone's happy."*
 * **"How do you know someone actually paid?"** *"In this version it's self-reported plus the host's tick. Open Banking confirmation is the obvious next step, but we deliberately didn't touch real payment rails tonight."*
 * **"Anyone with the link can edit, isn't that insecure?"** *"By design there are no accounts. Bills live behind a random code and are only useful for one dinner. Expiry after 48 hours is next."*
@@ -380,7 +398,38 @@ export const formatGBP = (p: number) => `£${(p / 100).toFixed(2)}`;
 // TODO verify in test run: monzo.me/<username>/<amount>?d=<description>
 export const monzoLink = (user: string, pence: number, note: string) =>
   `https://monzo.me/${encodeURIComponent(user)}/${(pence / 100).toFixed(2)}?d=${encodeURIComponent(note)}`;
+
+export type Guest = { id: string; is_host: boolean; paid_at: string | null };
+// "Settled" only when every item is claimed, someone besides the host owes money, and all of them have paid.
+export function isSettled(split: ReturnType<typeof computeSplit>, guests: Guest[]): boolean {
+  const owing = split.perGuest.filter((p) => p.total_pence > 0 && !guests.find((g) => g.id === p.guest_id)?.is_host);
+  return split.unclaimed.length === 0 && owing.length > 0
+    && owing.every((p) => Boolean(guests.find((g) => g.id === p.guest_id)?.paid_at));
+}
 ```
+`isSettled` tests: an empty table → false, an unclaimed item → false, a non-host unpaid → false, all claimed and non-hosts paid → true (the host never needs to pay).
+
+---
+
+## 15. Argon Red-Team Review (v2.1): What We Took and What We Didn't
+Argon's verdict: **build with fixes.** Claude checked each finding.
+
+| Argon finding | Decision | What changed |
+|---|---|---|
+| Live camera + HEIC + 6–12s parse will stall on stage | ✅ Accepted, adjusted | "Tonight's receipt" preset parsed live with one tap, no camera picker. Fallback to the original file if canvas decode fails. Timeout 20s. *Note: iOS Safari usually converts HEIC→JPEG on upload, so the real risk is a Mac/Chrome upload.* |
+| Name entry kills the 5-second scan moment | ✅ Accepted | Instant food alias + optional rename. Guest row created on first tap. |
+| Refetch storm overwrites optimistic taps | ⚖️ Partly | Kept refetch (simpler, can't drift out of sync), but **debounced, latest wins, taps still saving stay on top**, plus refetch on reconnect/wake. Patching state from realtime payloads is more code for Lovable to get wrong. |
+| `.every()` confetti fires on an empty table | ✅ Accepted, a real bug | `isSettled()` added to `split.ts` and tested. |
+| Review check compares items to a receipt total that includes service | ✅ Accepted, a real bug | Compare items + service. |
+| Negative discount items break claiming and the maths | ✅ Accepted, a real contradiction | `discount_pence` field, never claimable rows. |
+| `bills` has no `bill_id`, so the realtime filter breaks | ✅ Accepted, a real bug | `id=eq.` for bills, `bill_id=eq.` for the rest. |
+| Prompt 1 too dense | ✅ Accepted | Split into 1a (UI shell) → Claude runs SQL (free) → 1b (data + realtime). Review folded into `/new`. |
+| Hardcode gateway URL + `gemini-2.5-flash` | ⚖️ Partly | Prompt names Lovable AI + `LOVABLE_API_KEY` and forbids asking for a key, but **doesn't pin a model**. A hardcoded model name may be outdated by now, and Lovable picks its own current default. |
+| Host can't claim their own food | ✅ Accepted, a real gap | "Claim as host" QR (`?g=`). |
+| Cut Revolut | ❌ Kept | It's one button. Half of a London table uses Revolut. With no pre-filled amount, it sits next to "Copy amount". |
+| "Venues pay for the settled screen" won't convince seed VCs | ✅ Accepted, different fix | Lead with **guests paying the venue by bank (pay-by-bank)**. Rejected Argon's "PISP micro-fee on friend payments": people won't pay a fee to pay a friend. |
+| Unprepped "Why won't Monzo/Splitwise copy this?" | ✅ Accepted, answer rewritten | Rejected Argon's claim that it "cannibalises Splitwise's install funnel" as speculation we can't back up on stage. |
+| One big idea: zero-typing join + WhatsApp "Receipt of Shame" image | ✅ Join accepted · ⚖️ share as **text** | `wa.me` text link instead of an image card: same laugh, 1/10th of the build. |
 
 ## Sources
 - Splitwise Itemize launch (14 Oct 2026, free in US & UK, QR claiming without the app): [The Paypers](https://thepaypers.com/payments/news/splitwise-launches-itemize-receipt-splitting-feature-in-the-us-and-uk), [Yahoo Finance](https://finance.yahoo.com/small-business/articles/splitwise-launches-feature-takes-awkwardness-123000659.html), [Digital Trends](https://www.digitaltrends.com/phones/splitwise-now-lets-you-calculate-everyones-share-of-a-restaurant-bill-including-tax-and-tip/)
