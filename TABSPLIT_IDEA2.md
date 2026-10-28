@@ -34,9 +34,12 @@
 | C5 | **Pay buttons only appear after the host locks the bill** | Amounts keep changing while people claim |
 | C6 | **Bank details only show after lock**, and only to phones that have joined that table | A 4-char code can be guessed. It's not real security, but it reduces exposure |
 
-### ❓ Still to confirm
-- **Q7: build order.** Proposed: **A** core (join, pick, table, lock, pay, track) → **B** receipt photos → **C** wheel + split evenly + no-phone person → **D** rounds. Or wheel before photos?
-- **Q8: pitch ending.** Proposed: split demo → lock → a teammate pays → *"…or if you're feeling brave"* → switch to the wheel → every judge's phone spins.
+### Build order & pitch (Faizan: "Claude and Argon decide the build; we decide the pitch once we see a working demo")
+- **Q7, build order (decided by Claude; Argon can challenge it in round 2):** **A** core → **B** receipt photos → **C** modes (wheel, even, no-phone) → **D** rounds.
+  - *Why photos before the wheel:* "AI reads your receipt" is the expected wow moment at a Lovable AI event, and Phase A already works without it.
+  - *Escape hatch:* if B isn't working by **19:35**, stop it, keep "Use demo receipt" + "Type it in", and go straight to C. The wheel is pure frontend + realtime, so it's lower risk than the AI reader.
+  - *D (rounds)* is only built if A–C are green before 20:35.
+- **Q8, pitch ending: decided on the night** (21:15, after the full loop works on 5 phones). Both §13 endings stay ready: **wheel finale** or **Settled ✅ confetti**.
 
 ---
 
@@ -424,14 +427,14 @@ Golden rules: one big prompt per phase · roll back instead of arguing · **feat
 
 ---
 
-## 13. Demo & Stage Script (2 minutes; ending pending Q8)
+## 13. Demo & Stage Script (2 minutes; ending decided on the night)
 **[0:00–0:20] Hook:** *"Hands up if you've been at a group dinner and when the bill arrived, everyone went quiet?"* … *"and one person puts their card down and spends a week chasing friends on Monzo."*
 
 **[0:20–0:55] Join + claim:** hold up tonight's receipt → tap **Tonight's receipt** → items appear (fallback: **Use demo receipt**). *"Normally I'd drop the link in our group chat. Tonight you're my dinner party: scan the screen and tap what you ate."* Aliases pop up on the big screen. *"Shared the pizza? Tap it too, and it splits, service and all, to the penny."*
 
 **[0:55–1:20] The money:** point at the pill: *"3 things nobody's claimed: who had the garlic bread? 👀"* Lock. *"Now your phone says exactly what you owe me, and one tap opens Monzo with the amount filled in."* A teammate pays → ✅ on screen.
 
-**[1:20–1:45] The wheel (if Q8 = yes):** *"Of course, some tables don't split. They spin."* Switch to 🎡 → *"Tap I'm in if you're brave."* → **every phone in the room spins at once** → *"🎉 …pays £74.93."*
+**[1:20–1:45] The wheel (if we pick the wheel ending at 21:15):** *"Of course, some tables don't split. They spin."* Switch to 🎡 → *"Tap I'm in if you're brave."* → **every phone in the room spins at once** → *"🎉 …pays £74.93."*
 
 **[1:45–2:00] Close:** *"Splitwise launched receipt splitting two weeks ago, so the problem is real. But it ends with an IOU. TabSplit ends with the host paid before the waiter's back. TabSplit: get paid before anyone stands up."*
 
