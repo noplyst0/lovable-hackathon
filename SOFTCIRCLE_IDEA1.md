@@ -1,4 +1,4 @@
-# 🚀 Idea 1: SoftCircle (Softsliped)
+# 🚀 Idea 1: SoftCircle
 **Theme:** Live Investor Demand & Pledge Capture for Startup Demo Days  
 **Role in Hackathon:** Primary Option (High-Reward, Investor Room Fit)  
 **Time Limit:** 4 Hours (18:00 – 22:00) | **Target Event:** Imperial Entrepreneurs x YFL
@@ -131,3 +131,24 @@ alter publication supabase_realtime add table votes;
   * *Your Answer:* "Exactly—it is legally an Indication of Interest (IOI), not a binding contract. But in early-stage syndicates, soft-circles are the standard signal used to gauge round demand. For post-event follow-ups, founders only receive contact details for verified attendees, eliminating bot spam."
 * **Judge Q: "Why wouldn't an accelerator just use Slido or Typeform?"**  
   * *Your Answer:* "Slido gives you anonymous word clouds; Typeform gives you a boring 6-question survey that gets a 12% completion rate. SoftCircle gives the room a 4-second 1-tap experience and turns the stage projector into a live FOMO ticker that actually accelerates deal closing."
+
+---
+
+## 🧠 7. Claude's Review (28 Oct 2026)
+*TabSplit is the likely build (see `TABSPLIT_IDEA2.md`), so this is a short review, not a full rebuild plan.*
+
+**Verdict: still the best fit for this room, and its position got relatively stronger this month.** Splitwise launched a free QR receipt splitter in the UK on 14 Oct 2026, which weakens TabSplit's "nobody else does this" story. Nothing comparable has happened to SoftCircle. The mechanic (QR → 1 tap → live ticker) is the same build as TabSplit, so it stays a cheap switch.
+
+### What needs fixing before it's pitchable
+* **Remove the invented numbers.** "80% of momentum is lost", "12% Typeform completion" and "£500–£1,500 per demo day" have no source. A seed VC will ask where they came from. Say "most of it" and call the price a hypothesis we're testing.
+* **Drop the "verified attendees" Q&A answer.** We don't verify anyone. The honest answer: "One response per phone, and the organiser sees the email behind every soft-circle before it goes to founders."
+* **The FSMA footer doesn't make it compliant.** UK financial-promotion rules are about how the thing is worded, not about a disclaimer line. Keep every label "non-binding interest / soft-circle" and never "Invest". Don't claim legal compliance on stage.
+* **Shift+S fake pledges:** only for rehearsals or as a clearly labelled "simulated" mode. If judges find out a live number was faked, it costs more than a slow scan does.
+
+### Gaps not in the plan
+* **One vote per phone** (device ID in localStorage), or one judge can tap £25k ten times.
+* **An organiser control** to switch "Now pitching" between startups. Otherwise the QR is tied to a single startup.
+* **The actual business value is the follow-up list.** A founder view with a CSV export of emails and amounts is what an accelerator pays for. The ticker is only the demo.
+
+### Don't add
+Accounts, accreditation checks, SPVs, payments, or a native app.
