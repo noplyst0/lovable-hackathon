@@ -5,7 +5,7 @@ Everything for the event lives in `~/Documents/Hackathons/lovable-tabsplit` (thi
 **Edit the spec, then re-run; never hand-edit the generated files.** The morning "Tabsplit Test" project was
 a personal test on the old v2 spec: don't reuse it. Its look (fonts + oklch colours) is pinned into P1.
 
-**The only thing we're waiting on is hackathon credits.** Lovable workspace "Faizan's Lovable"
+**LIVE PROJECT: "TabSplit Bill Buddy" eb72f236-e339-4b65-bcd1-506402f88aa4** (https://lovable.dev/projects/eb72f236-e339-4b65-bcd1-506402f88aa4), created 18:43; deadline 20:30. Lovable workspace "Faizan's Lovable"
 (G2UYdY6xk0J81iaqt0FU) is on the free plan until they land.
 
 ## 18:00 run sheet (Claude drives everything from this session via the Lovable MCP)
