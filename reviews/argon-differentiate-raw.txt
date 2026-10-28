@@ -1,0 +1,21 @@
+Per [TABSPLIT_EXPLAINED.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_EXPLAINED.md) and [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md):
+
+**1. Accounts?**
+* **Everyone-has-an-account: Hard NO.** Your stage wow-moment is judges scanning the QR and appearing live as *"Garlic Naan Bandit 🧄"* in two seconds. Sign-ups kill that demo, and retrofitting auth onto open-RLS tables with 90 minutes left will break realtime and burn 3+ prompts.
+* **Optional host account: NO.** `localStorage` (`tabsplit:host`, `tabsplit:recent`) already saves bank details and past tables. For "account depth" at zero auth risk, render a **Host Ledger** drawer from `tabsplit:recent` showing total £ fronted and unpaid debtors across past dinners.
+
+**2. Direct Debit / Real Payments?**
+* **Direct Debit: Hard NO.** Bacs takes days to clear; useless at a restaurant table.
+* **Stripe test mode: NO (trap).** Checkout + webhooks will eat 30+ minutes of debugging, typing `4242…` on stage kills pacing, and without Stripe Connect onboarding, guests pay a test merchant—not the host. Keep Open Banking on the roadmap slide, or build #1 below.
+
+**3. Top 4 Differentiators (1 prompt / ~10 min each, ranked by Impact / Risk)**
+*(Finish **Spin the Wheel** first—the rival team almost certainly built a basic static splitter, not synchronized multi-phone roulette.)*
+1. **AI Screenshot Payment Verifier ("Verified ✅"):** Guest drops a bank-transfer screenshot; Gemini Vision checks amount/payee and auto-marks `paid_at` — **Why it wins:** kills the "honour system" critique with real AI and zero payment APIs; **Risk:** Low (clones `parse-receipt`).
+2. **"Say What You Ate" AI Bar:** Guests type/dictate *"Ruby, chai, and half the daal"* and Gemini ticks their items — **Why it wins:** puts AI in every judge's hands on stage, not just the host's; **Risk:** Low (1 Edge Function returning `item_ids[]`).
+3. **Weighted "Fair Wheel" ⚖️:** Toggle to size roulette slices by each person's food subtotal (£30 steak = huge slice, £4 lassi = sliver) — **Why it wins:** clever math, visual on the projector, fixes "roulette is unfair"; **Risk:** Very Low (pure frontend).
+4. **AI Table Roast Receipt:** On lock/settle, generate a shareable receipt crowning *"Big Spender"*, *"Naan Hoarder"*, and *"Slowest Payer"* — **Why it wins:** guaranteed laugh roasting judges' live picks; **Risk:** Very Low (UI + 1 prompt).
+
+**4. Three New Product Names**
+1. **Settld** — hammers your wedge (*"Splitwise leaves an IOU; Settld gets you paid"*).
+2. **CheckMate** — double meaning (restaurant check + friends + wheel endgame).
+3. **TableTap** — punchy, drops the generic "Tab/Split" words completely.

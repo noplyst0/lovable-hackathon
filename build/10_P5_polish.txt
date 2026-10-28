@@ -1,0 +1,1 @@
+(sent 19:08) Final polish: Track "Chase on WhatsApp", ?demo=1 "Simulate table", /screen never scrolls at 1280x720 and 1920x1080 in every mode, 72px bottom padding, confetti once. Full text in the Lovable chat history.

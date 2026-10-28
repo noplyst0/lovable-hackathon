@@ -1,0 +1,10 @@
+1) Roast receipt. When a bill is locked or settled (any mode), show a "Table awards 🏆" card on the Table, Pay, Track and Settled screens, and on `/t/:code/screen` once settled, with a Share button (navigator.share with the awards as text, falling back to copy). Work the awards out from the data using the totals from split.ts (the same totals the app shows):
+- "Big Spender": highest total.
+- "The Sharer": the person in the most shared items.
+- "<Dish> Hoarder": the person with the most units of one dish name, e.g. "Naan Hoarder" (only if they have 2 or more of it).
+- "Lightweight": lowest non-zero total.
+- "Fastest Payer": earliest paid_at.
+- "Still Owes 👀": unpaid guest with the biggest amount (only while locked).
+Skip an award that doesn't apply (e.g. in wheel mode only "Big Spender" style awards that make sense). Then ask Lovable AI (createServerFn, google/gemini-3.8-flash) for one short, friendly, PG roast line per award (max 12 words; never about appearance, identity or how much money someone has). If the AI call fails or takes over 8 seconds, show the awards without lines. Generate once per bill and cache it in localStorage `tabsplit:roast:<code>`.
+
+2) Host ledger on `/`. For each code in `tabsplit:recent` where this phone is the host (its `tabsplit:guest:<code>` is the bill's host guest), fetch the bill and show a card at the top: "You're owed £X across N tables", then one row per table that still has unpaid guests, listing them with amounts (totals from computeBill / computeEven / computeWheel depending on the bill's mode), plus a "Chase on WhatsApp" button per table that opens `https://wa.me/?text=` with "Still owed for <restaurant> 🧾 <name> £x · <name> £y, pay here: <link>". Hide the card if nothing is owed. No login. Don't write tests or run browser checks. Don't change files or behaviour not mentioned here.

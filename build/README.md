@@ -6,7 +6,7 @@ Everything for the event lives in `~/Documents/Hackathons/lovable-tabsplit` (thi
 a personal test on the old v2 spec: don't reuse it. Its look (fonts + oklch colours) is pinned into P1.
 
 **LIVE PROJECT: "TabSplit Bill Buddy" eb72f236-e339-4b65-bcd1-506402f88aa4** (https://lovable.dev/projects/eb72f236-e339-4b65-bcd1-506402f88aa4), created 18:43; deadline 20:30. Lovable workspace "Faizan's Lovable"
-(G2UYdY6xk0J81iaqt0FU) is on the free plan until they land.
+(G2UYdY6xk0J81iaqt0FU), Pro from the event. Live site https://tabsplit-live.lovable.app (renamed Settld at 19:07).
 
 ## 18:00 run sheet (Claude drives everything from this session via the Lovable MCP)
 
