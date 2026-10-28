@@ -5,7 +5,7 @@
 **Spec owner:** Claude (lead) · Product decisions: Faizan · Critic: Argon 🔍
 
 > **This file is the single source of truth for the build.** A new session (Claude, Argon or a teammate) should be able to build TabSplit from this file alone.  
-> **History:** v1 = Gemini's proposal (git history) · v2 = Claude's rewrite + research · v2.1 = Argon review round 1 (§15) · **v3 = Faizan's product decisions (joining by code/link, two-step guest screen, multi-photo receipts, rounds, split evenly, spin the wheel, the full payment flow) + test-run results.**
+> **History:** v1 = Gemini's proposal (git history) · v2 = Claude's rewrite + research · v2.1 = Argon review round 1 (§15) · **v3 = Faizan's product decisions (joining by code/link, two-step guest screen, multi-photo receipts, rounds, split evenly, spin the wheel, the full payment flow) + test-run results.** · **v3.1 = Argon review round 2 applied (§16).**
 
 ---
 
@@ -22,24 +22,24 @@
 | D6 | **One link per table, for everything:** joining, claiming, paying, and paying later. No accounts. Phones remember who you are, and on a new phone you pick your name. |
 | D7 | **Payment is confirmed by honour system + host referee.** The guest taps "I've paid", and the host can undo it or mark someone paid. We can't see anyone's bank. Automatic confirmation via Open Banking is the roadmap. |
 | D8 | **Three modes:** **Split by items** (default) · **Split evenly** · **Spin the wheel** (opt-in card roulette). |
-| D9 | **A receipt can have up to 4 photos** (long receipts), read as one receipt. **A table can have several receipts ("rounds")** for when the group orders again. |
+| D9 | **A receipt can have up to 4 photos** (long receipts), read as one receipt. **A table can have several receipts ("rounds")** for when the group orders again. *(v3.1: rounds are cut for tonight; the schema keeps them for later.)* |
 
 ### Added by Claude (v3), check these
 | # | Addition | Why |
 |---|---|---|
-| C1 | **Add a person without a phone** ("Sam 🪫"): the host adds them and taps items on their behalf | Every table has someone with a dead battery |
-| C2 | **Wheel is opt-in** ("I'm in 🎡 / I'm out") and the **winner is chosen once and saved**. Every phone animates to the same result | No pressure on anyone who can't afford it, and nobody can claim "mine landed on Tom" |
+| C1 | **Add a person without a phone** ("Sam 🪫"), **for Split evenly and the wheel only** (v3.1: no claiming on someone else's behalf) | Every table has someone with a dead battery. In items mode, a friend claims Sam's food as their own and Sam pays them back |
+| C2 | **Wheel is opt-out** (v3.1): everyone at the table is on it, with a big **"Sit this one out"** button. The **winner is chosen once and saved**, and every phone animates to the same result | Opt-in left the wheel empty on stage (Argon). Sitting out is still one visible tap, so nobody is pressured, and nobody can claim "mine landed on Tom" |
 | C3 | **Wheel winner pays the waiter** by default. If the host already paid by card, the winner gets "Pay Faizan £74.93" | Covers both real situations |
-| C4 | **"Who are you?" only appears after the bill is locked** (when paying later on a new phone). While claiming, new phones get an instant alias, with no extra tap | Keeps joining at zero taps (Argon's point) |
+| C4 | **"Who are you?" only appears after the bill is locked** (when paying later on a new phone). It lists only **unpaid, non-host** people, with **"Just watching 👀"** on top. While claiming, new phones get an instant alias | Keeps joining at zero taps, and a late scanner can't take someone's place by accident |
 | C5 | **Pay buttons only appear after the host locks the bill** | Amounts keep changing while people claim |
-| C6 | **Bank details only show after lock**, and only to phones that have joined that table | A 4-char code can be guessed. It's not real security, but it reduces exposure |
+| C6 | **Bank details only show in the app after lock** | **A UI gate only**: the data is readable through the open API. Say so if asked (§14). The real fix is pay-by-bank links, which replace raw bank details |
 
 ### Build order & pitch (Faizan: "Claude and Argon decide the build; we decide the pitch once we see a working demo")
-- **Q7, build order (decided by Claude; Argon can challenge it in round 2):** **A** core → **B** receipt photos → **C** modes (wheel, even, no-phone) → **D** rounds.
+- **Q7, build order (decided by Claude, agreed by Argon in round 2):** **A** core → **B** receipt photos → **C** modes (wheel, even, no-phone) → **D** rounds.
   - *Why photos before the wheel:* "AI reads your receipt" is the expected wow moment at a Lovable AI event, and Phase A already works without it.
   - *Escape hatch:* if B isn't working by **19:35**, stop it, keep "Use demo receipt" + "Type it in", and go straight to C. The wheel is pure frontend + realtime, so it's lower risk than the AI reader.
-  - *D (rounds)* is only built if A–C are green before 20:35.
-- **Q8, pitch ending: decided on the night** (21:15, after the full loop works on 5 phones). Both §13 endings stay ready: **wheel finale** or **Settled ✅ confetti**.
+  - **D (rounds) is cut for tonight** (Argon: zero pitch value). The `receipts` table stays, with exactly one receipt per table.
+- **Q8, pitch ending: decided on the night** (21:15, after the full loop works on 5 phones). Both §13 endings stay ready: **wheel finale** or **Settled ✅ confetti**. Argon recommends the wheel. Note: a real "everyone paid" Settled can't happen on stage, because judges won't actually pay, so the wheel (pay to waiter → Settled ✅) is the natural way to show it.
 
 ---
 
@@ -84,15 +84,15 @@ When the bill comes, the host photographs the receipt (several photos if it's lo
 ### 🅰 Phase A: Core (the product works end to end). MUST
 1. **Home:** **Start a table** · **Join** with a 4-char code box · **Your recent tables** (kept on this phone).
 2. **Create (host), on `/new`:**
-   - **Step 1 Receipt:** **Use demo receipt** (seeded) or **Type it in** (manual items). Photos arrive in Phase B.
+   - **Step 1 Receipt:** **Use demo receipt** (fills step 2 with the Dishoom items; the host still creates a real table, so they get host controls) or **Type it in** (manual items). Photos arrive in Phase B.
    - **Step 2 Review:** edit, delete or add items. Check line: *"Receipt says £Y, we count £X (items + service)"*. Service: **Already on receipt £__ / Add 10 / 12.5 / 15% / None**.
    - **Step 3 You:** host name, Monzo username, Revolut tag, sort code + account number (all optional) → **Open the table**.
 3. **Share (host):** a **Share** button opens the phone's share sheet with *"Join our table on TabSplit: <link> (code K7Q2)"*. Also **Copy link**, a **QR** pop-up, and a **Big screen** link.
-4. **Join (guest):** open the link or type the code → instantly get a **food alias + emoji** ("Garlic Naan Bandit 🧄"), renamable inline. The guest row is created on the **first tap**. Identity is kept in `localStorage`.
+4. **Join (guest):** open the link or type the code → instantly get a **food alias + emoji** ("Garlic Naan Bandit 🧄"), renamable inline. The guest row is created **as soon as the page opens** while the table is claiming (never on `/screen`, never after lock), so aliases pop up on the big screen straight away. People who join but eat nothing show £0, and the host can remove them. Identity is kept in `localStorage`.
 5. **Pick (step 1):** big item cards. Tap = claim, tap again = unclaim, several claimers = shared (÷ n shown). Others' avatars show on each item. Sticky footer: *"Your share £X (incl. £Y service)"* + **Continue →**.
 6. **Table (step 2):** **pill** *"⚠ 3 unclaimed · £14.50 ▾"* (tap to expand and claim). Then **you first**, then everyone else: name, items, total. A **← Edit my items** link goes back to Pick.
 7. **Live sync** of everything across phones (Supabase Realtime): debounced refetch (250ms), latest response wins, taps still saving stay layered on top, plus a refetch on reconnect and when the phone wakes.
-8. **Lock (host):** when the pill hits 0, a banner says *"Everything's claimed. Lock it?"*. The host can also lock early and confirm. After lock, amounts are frozen.
+8. **Lock (host):** a **permanent "Lock bill" button in the host's footer** (not hidden in ⚙️). It pulses when the pill hits 0: *"Everything's claimed. Lock it?"*. Locking early asks to confirm. After lock, amounts are frozen, and a tap still on its way is undone with "The bill's locked".
 9. **Pay (guest, after lock):** *"You owe Faizan £23.51"* + breakdown →
    - **Pay on Monzo** (`monzo.me/<user>/<amount>?d=TabSplit <restaurant>`)
    - **Revolut** (`revolut.me/<tag>` + **Copy £23.51**)
@@ -101,28 +101,28 @@ When the bill comes, the host photographs the receipt (several photos if it's lo
 
    Only methods the host filled in are shown.
 10. **Track (host, after lock):** everyone with **owes ⏳ / paid ✅**. Per person: **Mark paid** (cash) / **Undo**. The host's own row says *"you paid the restaurant"*.
-11. **Pay later:** reopening the link on the same phone goes straight to "You owe…". On a new phone after lock: **"Who are you?"** (tap your name).
+11. **Pay later:** reopening the link on the same phone goes straight to "You owe…". On a new phone after lock: **"Who are you?"** lists only unpaid people (not the host), plus **"Just watching 👀"**.
 12. **Settled:** when `isSettled()` is true → **Settled ✅** + confetti on every phone.
 13. **Big screen mode** `/t/:code/screen`: read-only, **fits exactly one screen (100vh, no scrolling)**, big QR + code, the items/people view, the progress bar, and the wheel when it spins.
-14. **Demo safety:** a seeded table; **Reset** (host ⚙️, clears claims and payments); **Simulate table** (`?demo=1`, 4 fake guests claim with 1–2s gaps; only if the audience can't scan, and say so).
+14. **Demo safety:** a seeded table for testing only (it has no host, so **never demo from `/t/DEMO`**); **Reset** (host ⚙️, clears claims and payments); **Simulate table** (`?demo=1`, 4 fake guests claim with 1–2s gaps; only if the audience can't scan, and say so).
 
 ### 🅱 Phase B: Receipt Photos. MUST for the demo
-15. **Add photos:** up to **4 photos per receipt** ("long receipt? add the bottom half"), read together as **one** receipt, with overlapping lines removed (§8).
-16. **Tonight's receipt preset:** a photo uploaded in rehearsal, read live with one tap on stage. No camera picker on stage.
+15. **Add photos:** up to **4 photos per receipt** ("long receipt? add the bottom half"), read together as **one** receipt, with overlapping lines removed (§8). Photos go straight to the reader as resized JPEGs and are **never stored** (v3.1: no storage bucket).
+16. **Tonight's receipt preset:** photos picked once in rehearsal and **kept on the host's phone** (localStorage, resized), then read live with one tap on stage. No camera picker on stage.
 17. "Reading receipt…" state, a 20s timeout and a fallback to editing by hand. Never a dead end.
 
 ### 🅲 Phase C: Modes + People. SHOULD
 18. **Mode switch (host ⚙️):** **Split by items** · **Split evenly** · **Spin for it 🎡**. Allowed before lock. After lock, switching unlocks and clears payments, with a confirm step.
 19. **Split evenly:** everyone at the table (host included) owes an equal, penny-exact share of the **whole** bill. The Table step shows *"£24.98 each × 3"*.
 20. **Spin the wheel:**
-    - Everyone sees **I'm in 🎡 / I'm out**. The host can add no-phone people to the wheel.
+    - Everyone is **on the wheel by default**, with a big **Sit this one out** button. No-phone people are on it too, and the host can sit them out.
     - With ≥2 in, the host taps **Spin**. The host's phone picks the winner (`pickWinner`) and saves `wheel_winner_id` + `wheel_spun_at`.
-    - **Every phone and the big screen** run the same 5-second spin starting at `wheel_spun_at` and land on the winner (`wheelRotation`). A phone that opens late shows the result straight away.
-    - Result: *"🎉 Tom pays £74.93"*. If **pay to waiter** (default) → settled. If **pay to host** → Tom gets the Pay screen for the full amount.
-21. **Add person without a phone (host):** "+ Add Sam 🪫". The host can claim on Sam's behalf from Sam's row, and mark Sam paid.
+    - **Every phone and the big screen** start the same 5-second spin **the moment they see `wheel_winner_id` change from empty to set** (via realtime), and land on the winner (`wheelRotation`, slices in `wheelOrder`, i.e. by id). **Don't time it against `wheel_spun_at`**, because phone clocks drift by seconds. A phone that *opens* after the spin shows the result straight away.
+    - Result: *"🎉 Tom pays £74.93"*. If **pay to waiter** (default) → settled. If **pay to host** → Tom gets the Pay screen for the full amount (`computeWheel`), and it's settled when he pays, or straight away if the host won.
+21. **Add person without a phone (host):** "+ Add Sam 🪫". **Counts in Split evenly and the wheel only**, with no claiming on their behalf (v3.1). The host can mark Sam paid.
 22. **"Who had the …? 👀"** banner when 1–2 items are left. **Chase on WhatsApp** (host, after lock): `wa.me/?text=Still owed for <restaurant> 🧾 Tom £24.58 · Sam £18.20, pay here: <link>`.
 
-### 🅳 Phase D: Rounds. SHOULD if time
+### 🅳 Phase D: Rounds. ✂️ CUT for tonight (v3.1), kept for later
 23. **Add another round (host):** a second (third…) receipt with its own photos and service charge. Items are grouped by round on Pick and Table. Totals come from `computeBill()` across all rounds.
 
 ### 🔵 Stretch (only if A–D are done)
@@ -156,7 +156,7 @@ GUEST · PICK                          GUEST · TABLE
 │ ● Black Daal  ÷2 P,T £9.90 │         │    Ruby · ½ Daal · Chai   │
 │ ○ Lamb Biryani    T  £16.90│         │ P  Priya         £16.82   │
 │ ● Garlic Naan        £4.50 │         │ T  Tom           £24.58   │
-├──────────────────────────┤         │ 🪫 Sam (no phone) £0.00    │
+├──────────────────────────┤         │ 🥟 Momo Menace    £0.00    │
 │ Your share  £23.51        │         ├──────────────────────────┤
 │ incl. £2.61 service       │         │ ← Edit my items           │
 │ [ Continue → ]            │         │ Waiting for Faizan to lock│
@@ -209,8 +209,7 @@ create table receipts (                          -- "rounds"; Phase A creates ex
   service_rate numeric not null default 0.125,
   service_included_pence int not null default 0,
   receipt_total_pence int,
-  discount_pence int,
-  photo_paths text[] not null default '{}'
+  discount_pence int
 );
 
 create table items (
@@ -230,7 +229,7 @@ create table guests (
   color text not null,
   is_host boolean not null default false,
   has_phone boolean not null default true,
-  in_wheel boolean not null default false,
+  in_wheel boolean not null default true,          -- opt-out (v3.1)
   paid_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -265,10 +264,10 @@ create or replace function cleanup_old_tables() returns int language sql as $$
   select count(*)::int from d;
 $$;
 ```
-- **Storage:** bucket `receipts` (public read) for photos.
+- **No storage bucket** (v3.1): photos go to the reader as base64 and are never kept.
 - **Codes:** generated on the client from the 31-char alphabet. Retry on a unique-violation error.
-- **Security note:** open RLS + a guessable code means anyone who guesses a code can see the table, and after lock, the host's bank details. That's accepted for a hackathon (C6 limits exposure). Real fix: longer codes for links + a short-lived join code. Lovable's security scan **will** flag the policies, which is expected.
-- **Seed:** table `DEMO`, "Dishoom Kensington", 1 receipt (service included £8.33, total £74.93): Chicken Ruby 1590 · House Black Daal 990 · Lamb Biryani 1690 · Garlic Naan 450 · Garlic Naan 450 · Okra Fries 550 · Mango Lassi 550 · Masala Chai 390.
+- **Security note:** open RLS + a guessable code means anyone who guesses a code can read the table, **including the host's bank details at any time through the API** (the app only *shows* them after lock). That's accepted for a hackathon (C6 limits exposure). Real fix: longer codes for links + a short-lived join code. Lovable's security scan **will** flag the policies, which is expected.
+- **Seed:** table `DEMO`, "Dishoom Kensington", 1 receipt (service included £8.33, total £74.93): Chicken Ruby 1590 · House Black Daal 990 · Lamb Biryani 1690 · Garlic Naan 450 · Garlic Naan 450 · Okra Fries 550 · Mango Lassi 550 · Masala Chai 390. **For testing only: it has no host, so never demo from it.**
 
 ---
 
@@ -276,7 +275,7 @@ $$;
 1. Everything is integer **pence**. Never floats, never VAT.
 2. **Items mode:** an item claimed by *k* people splits into *k* parts that add up exactly. Service is shared in proportion to food, **per receipt**, then summed across rounds (`computeBill`). Service on unclaimed items stays unallocated.
 3. **Even mode:** `computeEven(billTotal, everyone)`, penny-exact, host included.
-4. **Wheel:** the winner owes `billTotal` (only if `wheel_pay_to = 'host'`). `pickWinner` uses `crypto.getRandomValues`. `wheelRotation(i, n)` lands slice *i* under the top pointer (tested for 2, 3, 5 and 8 players).
+4. **Wheel:** `computeWheel` (the winner owes `billTotal`; used when `wheel_pay_to = 'host'`). Slices in `wheelOrder` (by id). `pickWinner` uses `crypto.getRandomValues`. `wheelRotation(i, n)` lands slice *i* under the top pointer (tested for 2, 3, 5 and 8 players). Settled: pay to waiter → on spin; pay to host → when the winner pays, or straight away if the host won.
 5. **Review check:** compare `receipt_total_pence` with **items + service** for that receipt, never items alone.
 6. **No negative items.** Discounts are reported separately and applied by the host editing prices.
 7. **Settled** = `isSettled()`: everything claimed, at least one non-host owes money, and all of them have paid. Never a bare `.every()`.
@@ -285,8 +284,8 @@ $$;
 ---
 
 ## 8. Receipt Reading (Edge Function `parse-receipt`)
-- **Client:** `<input type="file" accept="image/*" multiple>`, up to 4 photos per receipt. Resize each to ≤1600px JPEG on a canvas. **If a photo won't decode (e.g. HEIC in desktop Chrome), send the original.** Show "Reading receipt…" (5–15s).
-- **Server:** **Lovable AI, the built-in gateway (`LOVABLE_API_KEY`, set by Lovable Cloud)**, with its default vision-capable Gemini model. Never ask the user for a key. Send **all photos of one receipt in one request**, with tool calling / a strict JSON schema:
+- **Client:** `<input type="file" accept="image/*" multiple>`, up to 4 photos per receipt. Resize each to ≤1600px JPEG on a canvas. **If a photo won't decode (e.g. HEIC in desktop Chrome), send the original.** Send them as base64 in the request body; never store them. Show "Reading receipt…" (5–15s).
+- **Server:** **Lovable AI, the built-in gateway (`LOVABLE_API_KEY`, set by Lovable Cloud)**, with a vision-capable model: `google/gemini-2.5-flash`, or the current Gemini Flash if that's retired. Never ask the user for a key. Send **all photos of one receipt in one request**, with tool calling / a strict JSON schema:
 ```json
 {
   "restaurant_name": "string",
@@ -308,26 +307,26 @@ $$;
 ### Credits (measured in the test run)
 - **Prompt 1a (UI shell, 4 routes) cost 4.9 credits.** Lovable also wrote tests and ran browser checks, which add cost. **Budget ~5 credits per big prompt and ~1–2 per small fix.**
 - **Free (measured or per MCP docs):** `query_database` (SQL), `enable_database`, `deploy_project`, project knowledge, reading files/diffs. Code pushed via **GitHub sync** should be free too (⏳ not yet tested).
-- **Plan: P1–P5 ≈ 20–25 credits + spares. P6 (rounds) only if credits and time allow.** Ask the organisers how many credits we get.
+- **Plan: P1–P5 ≈ 20–25 credits + spares. P6 (rounds) is cut for tonight.** Ask the organisers how many credits we get.
 - **Every prompt ends with:** *"Don't write tests or run browser checks; we verify separately. Don't change files or behaviour not mentioned here."*
-- **Order on the day:** `create_project` (P1) → `set_project_knowledge` (Prompt 0) → `enable_database` + §6 SQL + seed (free) → P2 → P3 → P4 → P5 → (P6).
+- **Order on the day:** `create_project` (P1) → `set_project_knowledge` (Prompt 0) → `enable_database` + §6 SQL + seed (free) → P2 → P3 → P4 → P5.
 
 ### Prompt 0: Project Knowledge (free; set right after `create_project`)
-> TabSplit: a no-login web app for splitting a restaurant bill. Money is ALWAYS integer pence; never floats, never add VAT. Every money calculation uses `src/lib/split.ts` (computeSplit, computeBill, computeEven, allocate, isSettled, pickWinner, wheelRotation, formatGBP, monzoLink); never reimplement or modify it. Routes are only `/`, `/new`, `/t/:code`, `/t/:code/screen`. Identity is the localStorage key `tabsplit:guest:<code>`; recent tables are the key `tabsplit:recent`. Share links are `window.location.origin + '/t/' + code`. `/t/:code/screen` must fit one screen with no scrolling. Phones need ≥72px bottom padding. Design: receipt-paper off-white, ink-black, monospace prices, one bold accent, green = claimed, pulsing red = unclaimed. No auth, no payment processing, no extra routes. Don't write tests or run browser checks.
+> TabSplit: a no-login web app for splitting a restaurant bill. Money is ALWAYS integer pence; never floats, never add VAT. Every money calculation uses `src/lib/split.ts` (computeSplit, computeBill, computeEven, computeWheel, allocate, isSettled, wheelOrder, pickWinner, wheelRotation, formatGBP, monzoLink); never reimplement or modify it. Routes are only `/`, `/new`, `/t/:code`, `/t/:code/screen`. Identity is the localStorage key `tabsplit:guest:<code>`; recent tables are the key `tabsplit:recent`. Share links are `window.location.origin + '/t/' + code`. `/t/:code/screen` must fit one screen with no scrolling. Phones need ≥72px bottom padding. Design: receipt-paper off-white, ink-black, monospace prices, one bold accent, green = claimed, pulsing red = unclaimed. No auth, no payment processing, no extra routes. Don't write tests or run browser checks.
 
 ### P1: UI Shell (sent as `create_project`'s `initial_message`)
 > Build the UI for TabSplit, a mobile-first web app for splitting a restaurant bill. **UI only, no backend yet:** typed mock data in `src/lib/mock.ts` shaped exactly like these tables: [paste the §6 column lists for bills, receipts, items, guests, claims]. Create `src/lib/split.ts` with exactly this code and use it for every total: [paste Appendix A].
 > Routes:
 > - `/`: "Start a table", a "Join" box for a 4-character code, and "Your recent tables".
-> - `/new`: 3 steps on one route. (1) Receipt: Use demo receipt / Type it in / Add photos (a placeholder for now). (2) Review: editable items, the check line "Receipt says £Y, we count £X (items + service)", and the service selector. (3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table".
+> - `/new`: 3 steps on one route. (1) Receipt: Use demo receipt (fills step 2 with the Dishoom items) / Type it in / Add photos (a placeholder for now). (2) Review: editable items, the check line "Receipt says £Y, we count £X (items + service)", and the service selector. (3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table".
 > - `/t/:code`, with states switched by a dev toggle for now:
 >   - Pick: item cards, tap to claim/unclaim, shared ÷ n, sticky "Your share" footer + Continue.
 >   - Table: an "N unclaimed · £X" pill that expands, then you first, then everyone else with their items and totals, and "← Edit my items".
 >   - Pay: "You owe Faizan £X", breakdown, Monzo/Revolut/Copy amount/Bank transfer with copy buttons, "I've paid".
 >   - Track (host): rows with owes/paid, Mark paid/Undo, Chase on WhatsApp.
->   - Who are you?: a name list.
+>   - Who are you?: unpaid non-host names, with "Just watching 👀" on top.
 >   - Settled: ✅ + confetti.
->   - The host sees a ⚙️ menu (mode, add person, lock, reset, share/QR, big screen).
+>   - The host sees a permanent **Lock bill** button in the footer and a ⚙️ menu (mode, add person, reset, share/QR, big screen).
 > - `/t/:code/screen`: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, items with claimer chips (unclaimed pulse red), people + totals, and a progress bar.
 > Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: [Prompt 0 design line]. Don't write tests or run browser checks.
 
@@ -336,30 +335,30 @@ $$;
 ### P2: Wire Data + Realtime + Lock/Pay (Phase A complete)
 > The tables bills, receipts, items, guests and claims already exist with seed table `DEMO`. Don't create or alter tables. Replace all mock data with real queries.
 > `/new` creates a bill (random 4-char code from ABCDEFGHJKMNPQRSTUVWXYZ23456789, retry if taken), one receipt, its items and a host guest (is_host=true), saves the host's id in `tabsplit:guest:<code>`, adds the code to `tabsplit:recent`, and goes to `/t/:code`.
-> On `/t/:code`, create a guest row on the **first claim tap** (not on page load). If the bill is locked and there's no local identity, show "Who are you?". Taps insert/delete claims optimistically.
+> On `/t/:code` (never on `/screen`): if there's no local identity and the bill is claiming, **create the guest row immediately on page load** with the alias, and save its id. If the bill is locked and there's no local identity, show "Who are you?" listing only unpaid non-host guests, with "Just watching 👀" (view only, no guest row) on top. Taps insert/delete claims optimistically.
 > Realtime on `/t/:code` and `/screen`: subscribe to postgres_changes with **`id=eq.<bill.id>` for bills** and **`bill_id=eq.<bill.id>` for receipts, items, guests and claims**. On any event, debounce a refetch by 250ms, ignore stale responses, and keep taps that are still saving on top. Also refetch on reconnect and on `visibilitychange`.
 > Host actions:
-> - Lock: status=locked. Show a banner when 0 items are unclaimed.
+> - Lock: a permanent footer button; status=locked; it pulses when 0 items are unclaimed. Before inserting a claim, check the bill is still claiming; if not, undo the tap and show "The bill's locked".
 > - Reset: delete claims, clear paid_at, status=claiming.
 > - Mark paid / Undo: set or clear paid_at.
 > Guest "I've paid" sets paid_at. When `isSettled()` becomes true, set status=settled + settled_at. Pay methods are shown only if the host filled them in. Bank details are shown only after lock.
 > Share button: `navigator.share` with "Join our table on TabSplit: <link> (code <code>)", falling back to copying the link. Don't write tests or run browser checks.
 
 ### P3: Receipt Photos (Phase B)
-> On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Upload to the storage bucket `receipts` (create it, public read) and save the paths on the receipt.
-> Add "Tonight's receipt": a stored photo set that is sent to the reader with one tap.
-> Create the edge function `parse-receipt`. It uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key.** Use the default vision-capable Gemini model, send all photos in one request, and use tool calling that returns exactly: [paste §8 schema + instructions].
+> On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send them as base64 JPEGs in the request body. **Don't create a storage bucket or store photos.**
+> Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under `tabsplit:tonight`, and one tap sends them to the reader.
+> Create the edge function `parse-receipt`. It uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key.** Use the vision-capable model `google/gemini-2.5-flash` (or the current Gemini Flash if that's retired), send all photos in one request, and use tool calling that returns exactly: [paste §8 schema + instructions].
 > Turn quantities into unit rows, never create negative items, set the service mode as in §8, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.
 
 ### P4: Modes + People (Phase C)
 > Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. Before lock it switches freely; after lock it asks to confirm, then sets status=claiming and clears paid_at.
 > **Even:** totals come from `computeEven(billTotal, all guest ids)`. Show "£X each × N".
 > **Wheel:**
-> - Guests see I'm in / I'm out (`guests.in_wheel`). The host can toggle people without a phone.
-> - With ≥2 in, the host taps Spin: `pickWinner(in-wheel ids)`, then save `wheel_winner_id` and `wheel_spun_at = now()`.
-> - On every phone and on `/screen`, when `wheel_spun_at` is set, animate a wheel of the in-wheel guests (equal slices, starting at the top, clockwise, in name order) from 0 to `wheelRotation(winnerIndex, n)` degrees over 5s, starting at `wheel_spun_at`. If more than 5s have passed, show the result straight away.
-> - Result: "🎉 <name> pays £<billTotal>". The host chooses `wheel_pay_to` = waiter (then status=settled) or host (the winner sees the Pay screen for the full amount).
-> **Add person without a phone (host):** "+ Add person" creates a guest with has_phone=false and a 🪫 emoji. The host can open that person's row and claim items for them.
+> - Everyone is on the wheel by default (`guests.in_wheel` defaults to true). Each phone shows a big "Sit this one out" toggle. The host can sit out people without a phone.
+> - With ≥2 in, the host taps Spin: `pickWinner(wheelOrder(in-wheel ids))`, then save `wheel_winner_id` and `wheel_spun_at = now()`.
+> - Slices: equal, starting at the top, clockwise, in `wheelOrder` (by guest id, never by name). On every phone and on `/screen`, **start the 5s spin (0 → `wheelRotation(winnerIndex, n)` degrees, ease-out) when `wheel_winner_id` changes from null to a value while the page is open.** Don't time the animation from `wheel_spun_at`, because phone clocks drift. If the page *loads* with a winner already set, show the result without spinning.
+> - Result: "🎉 <name> pays £<billTotal>", with totals from `computeWheel`. The host chooses `wheel_pay_to`: waiter → status=settled; host → the winner sees the Pay screen for the full amount, and the bill is settled when they mark paid (or straight away if the host won).
+> **Add person without a phone (host):** "+ Add person" creates a guest with has_phone=false and a 🪫 emoji. They count in Split evenly and the wheel only; hide them in Split by items. The host can mark them paid.
 > Show a "Who had the <item>? 👀" banner when 1–2 items remain unclaimed. Don't write tests or run browser checks.
 
 ### P5: Polish + Demo Safety
@@ -369,7 +368,7 @@ $$;
 > - Make sure `/t/:code/screen` never scrolls at 1280×720 and 1920×1080, and that phones have ≥72px bottom padding.
 > Don't write tests or run browser checks.
 
-### P6: Rounds (Phase D, only if time)
+### P6: Rounds (Phase D) ✂️ cut for tonight, kept for later
 > The host ⚙️ gets "Add another round": runs `/new` steps 1–2 for a new receipt on the same bill. Items are grouped by round label on Pick, Table and Screen. All totals use `computeBill(receipts with their items and service, claims, guestIds)`. Don't write tests or run browser checks.
 
 **Rule:** never spend credits arguing with a broken layout. **Roll back** to the last good version (free) and reword.
@@ -420,7 +419,7 @@ Golden rules: one big prompt per phase · roll back instead of arguing · **feat
 | 19:00–19:35 | P3 receipt photos → test with tonight's receipt | ~4 |
 | 19:35–20:10 | P4 modes + wheel + no-phone person → wheel on 3 phones | ~5 |
 | 20:10–20:35 | P5 polish → publish | ~3 |
-| 20:35–20:45 | P6 rounds **only if everything is green**, else skip · 🔍 Argon red-team | 0–4 |
+| 20:35–20:45 | 🔍 Argon red-team of the live app · last small fixes | 0–2 |
 | **20:45** | **🔒 Feature freeze** | |
 | 20:45–21:15 | 5 phones, venue Wi-Fi + 4G, full loop ×3 · **record a backup video** | 0 |
 | 21:15–22:00 | 🔍 Argon Q&A grilling · rehearse ×3 · reset the demo table | 0 |
@@ -434,9 +433,11 @@ Golden rules: one big prompt per phase · roll back instead of arguing · **feat
 
 **[0:55–1:20] The money:** point at the pill: *"3 things nobody's claimed: who had the garlic bread? 👀"* Lock. *"Now your phone says exactly what you owe me, and one tap opens Monzo with the amount filled in."* A teammate pays → ✅ on screen.
 
-**[1:20–1:45] The wheel (if we pick the wheel ending at 21:15):** *"Of course, some tables don't split. They spin."* Switch to 🎡 → *"Tap I'm in if you're brave."* → **every phone in the room spins at once** → *"🎉 …pays £74.93."*
+**[1:20–1:45] The wheel (if we pick the wheel ending at 21:15):** *"Of course, some tables don't split. They spin."* Switch to 🎡 (everyone who scanned is already on it) → *"Sit out now if you can't afford Dishoom."* → **every phone in the room spins at once** → *"🎉 …pays the waiter £74.93"* → **Settled ✅ + confetti**.
 
 **[1:45–2:00] Close:** *"Splitwise launched receipt splitting two weeks ago, so the problem is real. But it ends with an IOU. TabSplit ends with the host paid before the waiter's back. TabSplit: get paid before anyone stands up."*
+
+**If we pick the confetti ending instead:** judges won't really pay, so the host marks them paid as cash and *says so*.
 
 **Fallbacks:** few scans → teammates' phones + Simulate table (say so). Wi-Fi dead → backup video. Phone not allowed on the projector → MacBook iPhone Mirroring or `/screen` on the laptop.
 
@@ -448,7 +449,7 @@ Golden rules: one big prompt per phase · roll back instead of arguing · **feat
 * **"Why won't Monzo or Splitwise copy this?"** *"They might. Monzo only works if the whole table banks with Monzo. We're bank-neutral. Splitwise is a ledger you keep coming back to. We're built for the five minutes at the table. Speed and focus, and we'd measure whether groups come back."*
 * **"How do you know someone actually paid?"** *"Today it's honour system plus the host as referee: they can undo a tick or mark cash. Automatic confirmation through Open Banking is the next step, and it's also the business model."*
 * **"Isn't the wheel gambling?"** *"It's the card roulette friends already play, made fair and visible. It's opt-in, between friends, and no money comes to us or anyone outside the table."* (Don't make legal claims beyond that.)
-* **"A 4-character code can be guessed. Can strangers see my bank details?"** *"Bank details only appear after the host locks the bill and only to people who joined. Tables delete themselves after they settle. Longer private links are the obvious next step."*
+* **"A 4-character code can be guessed. Can strangers see my bank details?"** *"Honestly, tonight that's a UI gate: the app only shows them after the host locks. The real product replaces raw bank details with pay-by-bank links, so there's nothing to leak, plus longer private links and tables that delete themselves."*
 * **"What if the AI misreads the receipt?"** *"The host reviews it first, with a check against the printed total, so a misread is fixed in two taps."*
 * **"What if someone claims the wrong thing?"** *"Tap again to unclaim. Everyone sees the whole table, so mistakes get noticed before the host locks."*
 
@@ -461,7 +462,7 @@ Argon's verdict: **build with fixes.** Claude checked each finding.
 | Argon finding | Decision | What changed |
 |---|---|---|
 | Live camera + HEIC + 6–12s parse will stall on stage | ✅ Accepted, adjusted | "Tonight's receipt" preset parsed live with one tap, no camera picker. Fallback to the original file if canvas decode fails. Timeout 20s. *Note: iOS Safari usually converts HEIC→JPEG on upload, so the real risk is a Mac/Chrome upload.* |
-| Name entry kills the 5-second scan moment | ✅ Accepted | Instant food alias + optional rename. Guest row created on first tap. |
+| Name entry kills the 5-second scan moment | ✅ Accepted | Instant food alias + optional rename. Guest row created on first tap *(superseded in v3.1: created when the page opens)*. |
 | Refetch storm overwrites optimistic taps | ⚖️ Partly | Kept refetch (simpler, can't drift out of sync), but **debounced, latest wins, taps still saving stay on top**, plus refetch on reconnect/wake. Patching state from realtime payloads is more code for Lovable to get wrong. |
 | `.every()` confetti fires on an empty table | ✅ Accepted, a real bug | `isSettled()` added to `split.ts` and tested. |
 | Review check compares items to a receipt total that includes service | ✅ Accepted, a real bug | Compare items + service. |
@@ -478,8 +479,30 @@ Argon's verdict: **build with fixes.** Claude checked each finding.
 
 ---
 
+## 16. Argon Review, Round 2 (v3.1): What We Took and What We Didn't
+Argon's verdict: **build with fixes.** Claude checked each finding.
+
+| Argon finding | Decision | What changed |
+|---|---|---|
+| Storage bucket in P3 is a 30-min trap (storage RLS), and photos are never shown again | ✅ Accepted | No bucket, no `photo_paths`. Photos go to the reader as base64. "Tonight's receipt" photos are kept on the host's phone (localStorage). |
+| Claiming for a no-phone person tangles identity state | ✅ Accepted | No-phone people count in Split evenly + the wheel only. In items mode a friend claims for them. |
+| `receipts` adds complexity before it's needed | ⚖️ Partly | Rounds (P6) are cut for tonight. **Kept the `receipts` table** with one row per table: it holds the service settings, the SQL is already tested, and `computeBill` handles it. That's no extra work for Phase A. |
+| Guest row created on first tap breaks the "aliases pop up" moment, rename, even and wheel | ✅ Accepted, **a real bug in v3** (Claude's own change from round 1) | Guest row created when the page opens (claiming only, never on `/screen`). Joiners who eat nothing show £0 and can be removed. |
+| Late scanners after lock hit "Who are you?" and grab someone's identity | ✅ Accepted | Only unpaid non-host names, plus "Just watching 👀". |
+| Lock buried in ⚙️ | ✅ Accepted | Permanent Lock button in the host's footer. Taps arriving after lock are undone. |
+| `in_wheel` default false leaves the Spin button dead on stage | ✅ Accepted, **with consent kept** | Opt-out: everyone is on the wheel, with a big "Sit this one out" button. |
+| Clock drift skips the wheel animation | ✅ Accepted, **a real bug in v3** | Spin starts when a phone *sees* the winner appear (realtime), not from `wheel_spun_at`. On page load with a winner already set, show the result. |
+| Slices by name break on rename; `isSettled` fails for the wheel | ✅ Accepted | `wheelOrder` (by id) + `computeWheel` added to `split.ts` and tested. Wheel settle rules written out (host-wins case included). |
+| Seed `DEMO` has no host | ✅ Accepted | "Use demo receipt" fills Review and the host creates a real table. Never demo from `/t/DEMO`. |
+| Pin `google/gemini-2.5-flash` in P3 | ⚖️ Partly (changed from round 1) | Named as the model **with a fallback** "or the current Gemini Flash if that's retired". Argon raised it twice, and naming it is cheap if worded safely. |
+| C6 isn't DB-level security | ✅ Accepted | C6 and the §14 answer now say "UI gate tonight; pay-by-bank links are the real fix". |
+| Q7: A → B (base64) → C → cut D | ✅ Agreed | Recorded in §0. |
+| Q8: end on the wheel after a pay ✅ | 📝 Noted | Faizan decides on the night. Claude added: a real "everyone paid" Settled can't happen with judges, so the wheel is the natural way to show Settled. |
+
+---
+
 ## Appendix A: `src/lib/split.ts` (tested 28 Oct 2026, passes `tsc --strict --noUncheckedIndexedAccess`)
-Covered by 16 tests: shared items · unclaimed items · exact totals with 12.5% added · service already on the receipt · empty bill · Monzo link format · `isSettled` (empty table, unclaimed item, unpaid guest, host doesn't need to pay) · **two rounds with different service rules add up exactly (£83.66)** · **even split £74.93 ÷ 3 is penny-exact** · **winner is always a player** · **wheel lands on the winner's slice for 2, 3, 5 and 8 players.**
+Covered by 20 tests: shared items · unclaimed items · exact totals with 12.5% added · service already on the receipt · empty bill · Monzo link format · `isSettled` (empty table, unclaimed item, unpaid guest, host doesn't need to pay) · **two rounds with different service rules add up exactly (£83.66)** · **even split £74.93 ÷ 3 is penny-exact** · **winner is always a player** · **wheel lands on the winner's slice for 2, 3, 5 and 8 players** · **wheel: winner owes the bill, settled once they pay, host-wins handled by the prompt rule** · **wheel order is by id, not name.**
 
 ```ts
 // All money is integer pence. Never use floats for money.
@@ -566,6 +589,20 @@ export function computeEven(billTotal: number, guestIds: string[]): SplitResult 
   const perGuest = guestIds.map((g) => ({ guest_id: g, food_pence: parts[g] ?? 0, service_pence: 0, total_pence: parts[g] ?? 0 }));
   return { perGuest, unclaimed: [], billTotal, claimedTotal: billTotal, remaining: 0 };
 }
+
+// Wheel mode: the winner owes the whole bill, everyone else owes nothing.
+// Settled rules for the wheel (no claiming involved): pay_to 'waiter' → settled on spin;
+// pay_to 'host' → settled when the winner marks paid, or straight away if the host won.
+export function computeWheel(billTotal: number, winnerId: string, guestIds: string[]): SplitResult {
+  const perGuest = guestIds.map((g) => {
+    const t = g === winnerId ? billTotal : 0;
+    return { guest_id: g, food_pence: t, service_pence: 0, total_pence: t };
+  });
+  return { perGuest, unclaimed: [], billTotal, claimedTotal: billTotal, remaining: 0 };
+}
+
+// Wheel slices are ALWAYS in this order (by guest id, never by name, so a rename can't move them).
+export const wheelOrder = (guestIds: string[]): string[] => [...guestIds].sort((a, b) => a.localeCompare(b));
 
 // Wheel: the host's phone picks the winner once and saves it; every phone animates to the same result.
 export function pickWinner(guestIds: string[]): string {
