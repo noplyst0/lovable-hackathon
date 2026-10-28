@@ -307,7 +307,7 @@ $$;
 ### Credits (measured in the test run)
 - **Prompt 1a (UI shell, 4 routes) cost 4.9 credits.** Lovable also wrote tests and ran browser checks, which add cost. **Budget ~5 credits per big prompt and ~1–2 per small fix.**
 - **Free (measured or per MCP docs):** `query_database` (SQL), `enable_database`, `deploy_project`, project knowledge, reading files/diffs. Code pushed via **GitHub sync** should be free too (⏳ not yet tested).
-- **Plan: P1–P5 ≈ 20–25 credits + spares. P6 (rounds) is cut for tonight.** Ask the organisers how many credits we get.
+- **Plan: P1–P5 ≈ 20–25 credits + spares. P6 (rounds) is cut for tonight.** **Update 28 Oct: hackathon credits are effectively unlimited**, so prefer Lovable prompts for every change. GitHub sync is optional (a nice-to-have for speed, not for cost). Time and the 20:45 freeze are the real limits now.
 - **Every prompt ends with:** *"Don't write tests or run browser checks; we verify separately. Don't change files or behaviour not mentioned here."*
 - **Order on the day:** `create_project` (P1) → `set_project_knowledge` (Prompt 0) → `enable_database` + §6 SQL + seed (free) → P2 → P3 → P4 → P5.
 
