@@ -1,0 +1,144 @@
+Build the UI for TabSplit, a mobile-first web app for splitting a restaurant bill. UI only, no backend yet: typed mock data in `src/lib/mock.ts` shaped exactly like these tables: 
+- bills: id uuid, code text (4 chars from ABCDEFGHJKMNPQRSTUVWXYZ23456789), restaurant_name text, mode 'items'|'even'|'wheel', status 'claiming'|'locked'|'settled', host_name text|null, host_monzo text|null, host_revolut text|null, host_sort_code text|null, host_account_number text|null, wheel_winner_id uuid|null, wheel_spun_at timestamptz|null, wheel_pay_to 'waiter'|'host', settled_at timestamptz|null, created_at timestamptz
+- receipts: id uuid, bill_id uuid, label text, position int, service_mode 'none'|'add'|'included', service_rate numeric (0.125), service_included_pence int, receipt_total_pence int|null, discount_pence int|null
+- items: id uuid, bill_id uuid, receipt_id uuid, name text, price_pence int (ONE unit; quantities are separate rows), position int
+- guests: id uuid, bill_id uuid, name text, emoji text, color text, is_host boolean, has_phone boolean, in_wheel boolean (default true), paid_at timestamptz|null, created_at timestamptz
+- claims: id uuid, bill_id uuid, item_id uuid, guest_id uuid, created_at timestamptz (unique per item_id + guest_id)
+Mock data: the bill "Dishoom Kensington", code K7Q2, host Faizan, one receipt with service included £8.33 and receipt total £74.93, items Chicken Ruby 1590 · House Black Daal 990 · Lamb Biryani 1690 · Garlic Naan 450 · Garlic Naan 450 · Okra Fries 550 · Mango Lassi 550 · Masala Chai 390 (pence), and 3 guests Priya, Tom and the host with a few claims, including one shared item.
+
+ Create `src/lib/split.ts` with exactly this code and use it for every total: 
+
+```ts
+// All money is integer pence. Never use floats for money.
+export type Item = { id: string; price_pence: number };
+export type Claim = { item_id: string; guest_id: string };
+export type ServiceMode = "none" | "add" | "included";
+export type Service = { mode: ServiceMode; rate: number; included_pence?: number };
+
+// Split `total` across weights so the parts always sum to exactly `total` (largest remainder).
+export function allocate(total: number, weights: Record<string, number>): Record<string, number> {
+  const ids = Object.keys(weights).sort();
+  const sum = ids.reduce((s, id) => s + (weights[id] ?? 0), 0);
+  const out: Record<string, number> = {};
+  if (sum <= 0 || total === 0) { ids.forEach((id) => (out[id] = 0)); return out; }
+  const raw = ids.map((id) => ({ id, exact: (total * (weights[id] ?? 0)) / sum }));
+  raw.forEach((r) => (out[r.id] = Math.floor(r.exact)));
+  let left = total - raw.reduce((s, r) => s + (out[r.id] ?? 0), 0);
+  raw.sort((a, b) => (b.exact - Math.floor(b.exact)) - (a.exact - Math.floor(a.exact)) || a.id.localeCompare(b.id));
+  for (const r of raw) { if (left <= 0) break; out[r.id] = (out[r.id] ?? 0) + 1; left -= 1; }
+  return out;
+}
+
+export function computeSplit(items: Item[], claims: Claim[], guestIds: string[], service: Service) {
+  const food: Record<string, number> = Object.fromEntries(guestIds.map((g) => [g, 0]));
+  const unclaimed: Item[] = [];
+  for (const item of items) {
+    const claimers = [...new Set(claims.filter((c) => c.item_id === item.id).map((c) => c.guest_id))]
+      .filter((g) => g in food);
+    if (claimers.length === 0) { unclaimed.push(item); continue; }
+    const parts = allocate(item.price_pence, Object.fromEntries(claimers.map((g) => [g, 1])));
+    for (const g of claimers) food[g] = (food[g] ?? 0) + (parts[g] ?? 0);
+  }
+  const itemsTotal = items.reduce((s, i) => s + i.price_pence, 0);
+  const serviceTotal =
+    service.mode === "add" ? Math.round(itemsTotal * service.rate)
+    : service.mode === "included" ? (service.included_pence ?? 0)
+    : 0;
+  const claimedFood = Object.values(food).reduce((s, v) => s + v, 0);
+  // Service on unclaimed food stays unallocated until those items are claimed.
+  const serviceForClaimed = itemsTotal === 0 ? 0 : Math.round((serviceTotal * claimedFood) / itemsTotal);
+  const svc = allocate(serviceForClaimed, food);
+  const perGuest = guestIds.map((g) => ({
+    guest_id: g, food_pence: food[g] ?? 0, service_pence: svc[g] ?? 0, total_pence: (food[g] ?? 0) + (svc[g] ?? 0),
+  }));
+  const billTotal = itemsTotal + serviceTotal;
+  const claimedTotal = perGuest.reduce((s, p) => s + p.total_pence, 0);
+  return { perGuest, unclaimed, billTotal, claimedTotal, remaining: billTotal - claimedTotal };
+}
+
+export const formatGBP = (p: number) => `£${(p / 100).toFixed(2)}`;
+// TODO verify in test run: monzo.me/<username>/<amount>?d=<description>
+export const monzoLink = (user: string, pence: number, note: string) =>
+  `https://monzo.me/${encodeURIComponent(user)}/${(pence / 100).toFixed(2)}?d=${encodeURIComponent(note)}`;
+
+export type Guest = { id: string; is_host: boolean; paid_at: string | null };
+export type SplitResult = {
+  perGuest: { guest_id: string; food_pence: number; service_pence: number; total_pence: number }[];
+  unclaimed: Item[]; billTotal: number; claimedTotal: number; remaining: number;
+};
+
+// A table can have several receipts ("rounds"), each with its own service charge. Split each, then add up.
+export type Receipt = { id: string; items: Item[]; service: Service };
+export function computeBill(receipts: Receipt[], claims: Claim[], guestIds: string[]): SplitResult {
+  const perGuest = guestIds.map((g) => ({ guest_id: g, food_pence: 0, service_pence: 0, total_pence: 0 }));
+  const out: SplitResult = { perGuest, unclaimed: [], billTotal: 0, claimedTotal: 0, remaining: 0 };
+  for (const r of receipts) {
+    const s = computeSplit(r.items, claims, guestIds, r.service);
+    s.perGuest.forEach((p, i) => {
+      const t = perGuest[i];
+      if (!t) return;
+      t.food_pence += p.food_pence; t.service_pence += p.service_pence; t.total_pence += p.total_pence;
+    });
+    out.unclaimed.push(...s.unclaimed);
+    out.billTotal += s.billTotal;
+    out.claimedTotal += s.claimedTotal;
+  }
+  out.remaining = out.billTotal - out.claimedTotal;
+  return out;
+}
+
+// "Split evenly" mode: everyone at the table (host included) gets an equal, penny-exact share of the whole bill.
+export function computeEven(billTotal: number, guestIds: string[]): SplitResult {
+  const parts = allocate(billTotal, Object.fromEntries(guestIds.map((g) => [g, 1])));
+  const perGuest = guestIds.map((g) => ({ guest_id: g, food_pence: parts[g] ?? 0, service_pence: 0, total_pence: parts[g] ?? 0 }));
+  return { perGuest, unclaimed: [], billTotal, claimedTotal: billTotal, remaining: 0 };
+}
+
+// Wheel mode: the winner owes the whole bill, everyone else owes nothing.
+// Settled rules for the wheel (no claiming involved): pay_to 'waiter' → settled on spin;
+// pay_to 'host' → settled when the winner marks paid, or straight away if the host won.
+export function computeWheel(billTotal: number, winnerId: string, guestIds: string[]): SplitResult {
+  const perGuest = guestIds.map((g) => {
+    const t = g === winnerId ? billTotal : 0;
+    return { guest_id: g, food_pence: t, service_pence: 0, total_pence: t };
+  });
+  return { perGuest, unclaimed: [], billTotal, claimedTotal: billTotal, remaining: 0 };
+}
+
+// Wheel slices are ALWAYS in this order (by guest id, never by name, so a rename can't move them).
+export const wheelOrder = (guestIds: string[]): string[] => [...guestIds].sort((a, b) => a.localeCompare(b));
+
+// Wheel: the host's phone picks the winner once and saves it; every phone animates to the same result.
+export function pickWinner(guestIds: string[]): string {
+  const r = new Uint32Array(1);
+  crypto.getRandomValues(r);
+  return guestIds[(r[0] ?? 0) % guestIds.length] ?? "";
+}
+// Clockwise rotation (degrees) that leaves the winner's slice under a pointer at the top (0°).
+// Slice i covers [i*360/n, (i+1)*360/n) measured clockwise from the top before rotating.
+export function wheelRotation(winnerIndex: number, n: number, turns = 6): number {
+  const slice = 360 / n;
+  return turns * 360 + (360 - (winnerIndex + 0.5) * slice);
+}
+
+// "Settled" only when every item is claimed, someone besides the host owes money, and all of them have paid.
+export function isSettled(split: SplitResult, guests: Guest[]): boolean {
+  const owing = split.perGuest.filter((p) => p.total_pence > 0 && !guests.find((g) => g.id === p.guest_id)?.is_host);
+  return split.unclaimed.length === 0 && owing.length > 0
+    && owing.every((p) => Boolean(guests.find((g) => g.id === p.guest_id)?.paid_at));
+}
+```
+.
+Routes:
+- `/`: "Start a table", a "Join" box for a 4-character code, and "Your recent tables".
+- `/new`: 3 steps on one route. (1) Receipt: Use demo receipt (fills step 2 with the Dishoom items) / Type it in / Add photos (a placeholder for now). (2) Review: editable items, the check line "Receipt says £Y, we count £X (items + service)", and the service selector. (3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table".
+- `/t/:code`, with states switched by a dev toggle for now:
+- Pick: item cards, tap to claim/unclaim, shared ÷ n, sticky "Your share" footer + Continue.
+- Table: an "N unclaimed · £X" pill that expands, then you first, then everyone else with their items and totals, and "← Edit my items".
+- Pay: "You owe Faizan £X", breakdown, Monzo/Revolut/Copy amount/Bank transfer with copy buttons, "I've paid".
+- Track (host): rows with owes/paid, Mark paid/Undo, Chase on WhatsApp.
+- Who are you?: unpaid non-host names, with "Just watching 👀" on top.
+- Settled: ✅ + confetti.
+- The host sees a permanent Lock bill button in the footer and a ⚙️ menu (mode, add person, reset, share/QR, big screen).
+- `/t/:code/screen`: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, items with claimer chips (unclaimed pulse red), people + totals, and a progress bar.
+Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: receipt-paper off-white, ink-black text, monospace prices, one bold accent, green = claimed, pulsing red = unclaimed. Big tap targets. Mobile-first everywhere except /t/:code/screen, which is projector-first, must fit exactly 100vh and must never scroll. Every phone screen has at least 72px of bottom padding so the 'Edit with Lovable' badge never covers the sticky footer. Don't imitate Monzo or Revolut branding. Use exactly these tokens (they come from a version we liked): fonts Archivo (body), Archivo Black (headings), JetBrains Mono (prices and codes); colours in oklch: background 0.965 0.012 85, paper/cards 0.985 0.008 85, ink 0.17 0.01 60, the one accent is electric cobalt 0.52 0.22 262, claimed green 0.6 0.16 150, unclaimed red 0.58 0.22 27 (pulsing), warning amber 0.75 0.16 70. Receipt-style cards with a dashed rule between sections. Don't write tests or run browser checks.

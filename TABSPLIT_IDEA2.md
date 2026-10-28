@@ -295,7 +295,7 @@ $$;
   "receipt_total_pence": 7493
 }
 ```
-- **Instructions to the model:** *"These photos are parts of ONE receipt, in order, and may overlap. Return each line item exactly once: if a line appears in two photos, include it once."* Prices are integer pence and `line_total_pence` is the printed line price. Ignore VAT summaries, payment/card lines, table numbers and covers. A printed service/"optional gratuity" line goes in `service_charge_pence`, never in items. Discounts go in `discount_pence` (positive), never in items.
+- **Instructions to the model:** *"These photos are parts of ONE receipt, in order, and may overlap. Return each line item exactly once: if a line appears in two photos, include it once."* Prices are integer pence and `line_total_pence` is the printed line price (for "2 x Burger @ 12.95  25.90" that's quantity 2 and 2590, never the @ unit price). Ignore subtotal, net and VAT summaries, payment/card lines, table numbers and covers. A printed service/"optional gratuity" line goes in `service_charge_pence`, never in items. Discounts go in `discount_pence` (positive), never in items.
 - **After reading:** turn quantities into separate unit rows (spreading leftover pennies). `service_mode = 'included'` if service was found, otherwise `'add'` 12.5%. Always land on Review. If `discount_pence` is set, show *"Receipt has a £X discount: edit prices to apply it."*
 - **Failure (>20s or error):** *"Couldn't read that one. Type it in or use the demo receipt."*
 - AI calls use the same credit/usage balance. Read the demo receipt once in rehearsal and keep the result.
@@ -348,7 +348,7 @@ $$;
 > On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send them as base64 JPEGs in the request body. **Don't create a storage bucket or store photos.**
 > Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under `tabsplit:tonight`, and one tap sends them to the reader.
 > Create the edge function `parse-receipt`. It uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key.** Use the vision-capable model `google/gemini-2.5-flash` (or the current Gemini Flash if that's retired), send all photos in one request, and use tool calling that returns exactly: [paste §8 schema + instructions].
-> Turn quantities into unit rows, never create negative items, set the service mode as in §8, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.
+> Turn quantities into unit rows (spread leftover pennies), never create negative items, set `service_mode = 'included'` with `service_included_pence = service_charge_pence` if a service charge was found (otherwise `'add'` at 12.5%), show "Receipt has a £X discount: edit prices to apply it." if `discount_pence` is set, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.
 
 ### P4: Modes + People (Phase C)
 > Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. Before lock it switches freely; after lock it asks to confirm, then sets status=claiming and clears paid_at.
@@ -404,8 +404,9 @@ Golden rules: one big prompt per phase · roll back instead of arguing · **feat
 - [ ] GitHub sync: connect the repo in Lovable, Claude pushes a fix, and it appears in Lovable with no credits spent.
 - [ ] `monzo.me/<user>/1.50?d=test` opens Monzo with £1.50 filled in, and what a non-Monzo phone sees.
 - [ ] What `revolut.me/<tag>` does on a phone.
-- [ ] 3 receipt photos taken (one long, one with service printed, one with 2× items) for the reader on the day.
-- [ ] Organisers: how many credits? Can we continue the test project or must we start fresh at 18:00?
+- [x] 3 test receipts (one long, one with service printed, one with 2× items): **AI-generated with Gemini 4 Argon (Faizan's call)**, text checked line by line, in `assets/receipts/` with the expected reader output in `EXPECTED.md`. Plus a backup stage receipt `assets/demo-receipt.png` (= the DEMO seed). On stage, tonight's real receipt is still the best one.
+- [x] Continue the test project or start fresh? **Fresh.** The morning project was a personal test, not an event entry. Paste-ready prompts + SQL are in `build/` (see `build/README.md`); the test project's look is pinned into P1.
+- [x] Screen mockups (Pick, Table, Pay, Track, wheel): `mockups/all-screens.png`, amounts computed with `split.ts`.
 
 ---
 

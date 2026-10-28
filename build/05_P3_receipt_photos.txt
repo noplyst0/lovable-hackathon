@@ -1,0 +1,17 @@
+On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send them as base64 JPEGs in the request body. Don't create a storage bucket or store photos.
+Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under `tabsplit:tonight`, and one tap sends them to the reader.
+Create the edge function `parse-receipt`. It uses Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key. Use the vision-capable model `google/gemini-2.5-flash` (or the current Gemini Flash if that's retired), send all photos in one request, and use tool calling that returns exactly: 
+
+```json
+{
+  "restaurant_name": "string",
+  "items": [{ "name": "string", "quantity": 1, "line_total_pence": 450 }],
+  "service_charge_pence": 833,
+  "discount_pence": null,
+  "receipt_total_pence": 7493
+}
+```
+
+Instructions to the model: "These photos are parts of ONE receipt, in order, and may overlap. Return each line item exactly once: if a line appears in two photos, include it once." Prices are integer pence and `line_total_pence` is the printed line price (for "2 x Burger @ 12.95  25.90" that's quantity 2 and 2590, never the @ unit price). Ignore subtotal, net and VAT summaries, payment/card lines, table numbers and covers. A printed service/"optional gratuity" line goes in `service_charge_pence`, never in items. Discounts go in `discount_pence` (positive), never in items.
+
+Turn quantities into unit rows (spread leftover pennies), never create negative items, set `service_mode = 'included'` with `service_included_pence = service_charge_pence` if a service charge was found (otherwise `'add'` at 12.5%), show "Receipt has a £X discount: edit prices to apply it." if `discount_pence` is set, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks. Don't change files or behaviour not mentioned here.

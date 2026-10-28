@@ -1,0 +1,5 @@
+- The Track screen gets "Chase on WhatsApp": `https://wa.me/?text=` with "Still owed for <restaurant> 🧾 <name> £x · <name> £y, pay here: <link>".
+- Confetti (canvas-confetti) on Settled and on the wheel result.
+- `/t/:code?demo=1` shows "Simulate table", which adds 4 guests (Priya, Tom, Sam, Jess) who claim random unclaimed items 1–2s apart.
+- Make sure `/t/:code/screen` never scrolls at 1280×720 and 1920×1080, and that phones have ≥72px bottom padding.
+Don't write tests or run browser checks. Don't change files or behaviour not mentioned here.

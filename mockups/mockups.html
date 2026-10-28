@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TabSplit Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens copied from the test-run project (src/styles.css) and pinned in P1 */
+  :root {
+    --bg: oklch(0.965 0.012 85); --paper: oklch(0.985 0.008 85); --ink: oklch(0.17 0.01 60);
+    --muted: oklch(0.45 0.015 60); --line: oklch(0.17 0.01 60 / 18%); --soft: oklch(0.92 0.015 85);
+    --accent: oklch(0.52 0.22 262); --green: oklch(0.6 0.16 150); --red: oklch(0.58 0.22 27);
+    --amber: oklch(0.75 0.16 70);
+    --g1: oklch(0.52 0.22 262); --g2: oklch(0.62 0.2 340); --g3: oklch(0.68 0.15 55);
+    --g4: oklch(0.55 0.12 190); --g5: oklch(0.45 0.15 300);
+    --mono: "JetBrains Mono", ui-monospace, monospace; --display: "Archivo Black", "Archivo", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9e4dc; font-family: "Archivo", system-ui, sans-serif; color: var(--ink); }
+  .sheet { padding: 36px 40px 44px; }
+  .sheet h1 { font: 400 30px var(--display); margin: 0 0 4px; }
+  .sheet .sub { font: 13px var(--mono); color: var(--muted); margin-bottom: 26px; }
+  .row { display: flex; gap: 34px; align-items: flex-start; }
+  .cap { font: 700 13px var(--mono); letter-spacing: 1px; text-transform: uppercase; margin: 0 0 10px 6px; }
+  .cap span { color: var(--muted); font-weight: 400; }
+
+  .phone { width: 390px; height: 844px; border-radius: 48px; background: #111; padding: 11px; box-shadow: 0 30px 60px -30px rgb(0 0 0 / 45%); }
+  .scr { position: relative; width: 100%; height: 100%; border-radius: 38px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 9px; left: 50%; width: 110px; height: 30px; margin-left: -55px; background: #111; border-radius: 20px; z-index: 5; }
+  .body { flex: 1; padding: 52px 18px 0; overflow: hidden; }
+  .kicker { font: 700 11px var(--mono); letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; }
+  .h { font: 400 24px/1.1 var(--display); margin: 6px 0 2px; }
+  .you { font-size: 14px; color: var(--muted); }
+  .you b { color: var(--ink); }
+  .mono { font-family: var(--mono); }
+  .dash { border-top: 2px dashed var(--line); margin: 12px 0; }
+
+  .av { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font: 800 12px "Archivo"; color: #fff; flex: none; border: 2px solid var(--paper); }
+  .av.e { background: var(--soft); font-size: 15px; }
+  .avs { display: flex; } .avs .av + .av { margin-left: -8px; }
+
+  .banner { margin: 10px 0 8px; padding: 8px 12px; border-radius: 10px; background: oklch(0.75 0.16 70 / 22%); font-weight: 600; font-size: 14px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 6px 12px; margin-bottom: 6px; background: var(--paper); border: 2px solid var(--line); border-radius: 12px; min-height: 48px; }
+  .item .nm { flex: 1; font-weight: 600; font-size: 15px; }
+  .item .nm small { display: block; font: 400 11.5px var(--mono); color: var(--muted); margin-top: 1px; }
+  .item .pr { font: 700 15px var(--mono); }
+  .item.mine { border-color: var(--green); background: oklch(0.6 0.16 150 / 9%); }
+  .item.open { border-color: oklch(0.58 0.22 27 / 55%); animation: pulse 1.6s ease-in-out infinite; background: oklch(0.58 0.22 27 / 10%); }
+  .tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; }
+  .mine .tick { background: var(--green); border-color: var(--green); }
+  @keyframes pulse { 50% { background: oklch(0.58 0.22 27 / 20%); } }
+
+  .foot { padding: 12px 18px 84px; background: var(--paper); border-top: 2px dashed var(--line); }
+  .foot .badge-zone { position: absolute; left: 0; right: 0; bottom: 0; height: 72px; }
+  .share { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .share .big { font: 700 26px var(--mono); }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 52px; border-radius: 12px; font: 800 16px "Archivo"; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); }
+  .btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.ink { background: var(--ink); color: var(--paper); }
+  .btn.ok { border-color: var(--green); color: oklch(0.45 0.14 150); }
+  .btn.sm { height: 36px; font-size: 13px; padding: 0 12px; border-radius: 9px; }
+  .two { display: flex; gap: 8px; } .two .btn { flex: 1; }
+
+  .pill { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--red); color: var(--red); font: 700 14px var(--mono); animation: pulse 1.6s ease-in-out infinite; margin: 12px 0 14px; }
+  .person { display: flex; gap: 11px; align-items: center; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .person .who { flex: 1; min-width: 0; }
+  .person .who b { font-size: 15px; }
+  .person .who small { display: block; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .person .amt { font: 700 15px var(--mono); }
+  .person.me { background: oklch(0.52 0.22 262 / 8%); border-radius: 10px; padding: 10px 10px; border-bottom: 0; margin-bottom: 4px; }
+  .bar { height: 10px; border-radius: 6px; background: var(--soft); overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; background: var(--green); }
+
+  .owe { text-align: center; margin: 14px 0 6px; }
+  .owe .amt { font: 400 54px/1 var(--display); letter-spacing: -1px; margin-top: 4px; }
+  .rcpt { background: var(--paper); border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; font: 13px/1.75 var(--mono); }
+  .rcpt div { display: flex; justify-content: space-between; }
+  .bank { background: var(--paper); border: 2px solid var(--line); border-radius: 12px; padding: 8px 14px; font-size: 13px; }
+  .bank div { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+  .bank .mono { font-weight: 700; }
+  .copy { color: var(--accent); font-weight: 800; font-size: 12px; margin-left: 8px; }
+  .stack > * + * { margin-top: 8px; }
+
+  .status { font: 700 12px var(--mono); padding: 3px 8px; border-radius: 6px; }
+  .status.paid { background: oklch(0.6 0.16 150 / 16%); color: oklch(0.42 0.14 150); }
+  .status.owes { background: oklch(0.75 0.16 70 / 25%); color: oklch(0.45 0.12 70); }
+  .hostbar { display: flex; justify-content: space-around; font: 700 12px var(--mono); color: var(--muted); padding-top: 10px; }
+
+  .wheelwrap { position: relative; width: 300px; height: 300px; margin: 16px auto 6px; }
+  .pointer { position: absolute; top: -8px; left: 50%; margin-left: -14px; width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 26px solid var(--ink); z-index: 2; }
+  .result { text-align: center; background: var(--paper); border: 2px solid var(--ink); border-radius: 14px; padding: 12px; margin-top: 10px; }
+  .result .r1 { font: 400 26px var(--display); }
+  .confetti i { position: absolute; width: 8px; height: 14px; border-radius: 2px; }
+
+  body.single { background: var(--bg); }
+  body.single .sheet { padding: 12px; }
+  body.single .sheet > h1, body.single .sheet > .sub, body.single .cap { display: none; }
+  body.single .col { display: none; }
+  body.single .col.on { display: block; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>TabSplit: what we're building</h1>
+  <div class="sub">Spec v3.1 §5 · Dishoom Kensington, table K7Q2 · all amounts computed with src/lib/split.ts</div>
+  <div class="row">
+
+    <!-- 1. GUEST PICK -->
+    <div class="col" data-s="pick">
+      <div class="cap">1 · Guest: Pick <span>tap what you ate</span></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="body">
+          <div class="kicker">Dishoom Kensington · Table K7Q2</div>
+          <div class="you" style="margin-top:6px">You: <b>Garlic Naan Bandit 🧄</b> <span class="copy">✎ rename</span></div>
+          <div class="banner">Who had the Okra Fries? 👀</div>
+          <div class="item mine"><div class="tick">✓</div><div class="nm">Chicken Ruby</div><div class="avs"><span class="av e">🧄</span></div><div class="pr">£15.90</div></div>
+          <div class="item mine"><div class="tick">✓</div><div class="nm">House Black Daal<small>÷2 · £4.95 each</small></div><div class="avs"><span class="av e">🧄</span><span class="av" style="background:var(--g2)">P</span></div><div class="pr">£9.90</div></div>
+          <div class="item"><div class="tick"></div><div class="nm">Lamb Biryani</div><div class="avs"><span class="av" style="background:var(--g3)">T</span></div><div class="pr">£16.90</div></div>
+          <div class="item"><div class="tick"></div><div class="nm">Garlic Naan</div><div class="avs"><span class="av" style="background:var(--g2)">P</span></div><div class="pr">£4.50</div></div>
+          <div class="item"><div class="tick"></div><div class="nm">Garlic Naan</div><div class="avs"><span class="av" style="background:var(--g1)">F</span></div><div class="pr">£4.50</div></div>
+          <div class="item open"><div class="tick"></div><div class="nm">Okra Fries<small>nobody yet</small></div><div class="pr">£5.50</div></div>
+          <div class="item open"><div class="tick"></div><div class="nm">Mango Lassi<small>nobody yet</small></div><div class="pr">£5.50</div></div>
+          <div class="item mine"><div class="tick">✓</div><div class="nm">Masala Chai</div><div class="avs"><span class="av e">🧄</span></div><div class="pr">£3.90</div></div>
+        </div>
+        <div class="foot">
+          <div class="share"><div><div class="kicker">Your share</div><div class="you">incl. £3.10 service</div></div><div class="big">£27.85</div></div>
+          <div class="btn ink">Continue →</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2. GUEST TABLE -->
+    <div class="col" data-s="table">
+      <div class="cap">2 · Guest: Table <span>who had what</span></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="body">
+          <div class="kicker">Dishoom Kensington · Table K7Q2</div>
+          <div class="h">The table</div>
+          <div class="pill"><span>⚠ 2 unclaimed · £11.00</span><span>▾</span></div>
+          <div class="person me"><span class="av e">🧄</span><div class="who"><b>You</b> <span class="you">Garlic Naan Bandit</span><small>Chicken Ruby · ½ Black Daal · Masala Chai</small></div><div class="amt">£27.85</div></div>
+          <div class="person"><span class="av" style="background:var(--g2)">P</span><div class="who"><b>Priya</b><small>½ Black Daal · Garlic Naan</small></div><div class="amt">£10.63</div></div>
+          <div class="person"><span class="av" style="background:var(--g3)">T</span><div class="who"><b>Tom</b><small>Lamb Biryani</small></div><div class="amt">£19.01</div></div>
+          <div class="person"><span class="av" style="background:var(--g1)">F</span><div class="who"><b>Faizan</b> <span class="you">host</span><small>Garlic Naan</small></div><div class="amt">£5.06</div></div>
+          <div class="person"><span class="av e">🥟</span><div class="who"><b>Momo Menace</b><small>nothing yet</small></div><div class="amt" style="color:var(--muted)">£0.00</div></div>
+          <div class="dash"></div>
+          <div class="share" style="margin:0"><span class="kicker">Claimed</span><span class="mono" style="font-weight:700">£62.55 of £74.93</span></div>
+          <div class="bar"><i style="width:83.5%"></i></div>
+        </div>
+        <div class="foot">
+          <div class="btn" style="margin-bottom:10px">← Edit my items</div>
+          <div class="you" style="text-align:center">Waiting for Faizan to lock the bill…</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3. GUEST PAY -->
+    <div class="col" data-s="pay">
+      <div class="cap">3 · Guest: Pay <span>after the host locks</span></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="body">
+          <div class="kicker">Locked 🔒 · Dishoom Kensington</div>
+          <div class="owe"><div class="you">You owe <b>Faizan</b></div><div class="amt">£27.84</div></div>
+          <div class="rcpt">
+            <div><span>Chicken Ruby</span><span>£15.90</span></div>
+            <div><span>½ House Black Daal</span><span>£4.95</span></div>
+            <div><span>Masala Chai</span><span>£3.90</span></div>
+            <div style="color:var(--muted)"><span>Service (on receipt)</span><span>£3.09</span></div>
+          </div>
+          <div class="stack" style="margin-top:12px">
+            <div class="btn pri">Pay £27.84 on Monzo</div>
+            <div class="two"><div class="btn">Revolut</div><div class="btn">Copy £27.84</div></div>
+            <div class="bank">
+              <div class="kicker">Bank transfer</div>
+              <div><span>Sort code</span><span><span class="mono">12-34-56</span><span class="copy">⧉</span></span></div>
+              <div><span>Account</span><span><span class="mono">12345678</span><span class="copy">⧉</span></span></div>
+              <div><span>Reference</span><span><span class="mono">TabSplit K7Q2 Bandit</span><span class="copy">⧉</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <div class="btn ok">I've paid ✅</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4. HOST TRACK -->
+    <div class="col" data-s="track">
+      <div class="cap">4 · Host: Track <span>who's paid</span></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="body">
+          <div class="kicker">Your table · K7Q2 · Locked</div>
+          <div class="h" style="margin-top:10px"><span class="mono" style="font:700 30px var(--mono)">£16.82</span> <span style="font:600 16px Archivo;color:var(--muted)">of £66.77 back</span></div>
+          <div class="bar" style="height:14px"><i style="width:25.2%"></i></div>
+          <div style="margin-top:14px">
+            <div class="person"><span class="av" style="background:var(--g1)">F</span><div class="who"><b>You</b><small>paid the restaurant · your share £8.16</small></div></div>
+            <div class="person"><span class="av" style="background:var(--g2)">P</span><div class="who"><b>Priya</b><small><span class="status paid">paid ✅</span></small></div><div class="amt">£16.82</div><div class="btn sm">Undo</div></div>
+            <div class="person"><span class="av" style="background:var(--g3)">T</span><div class="who"><b>Tom</b><small><span class="status owes">owes ⏳</span></small></div><div class="amt">£22.11</div><div class="btn sm">Mark paid</div></div>
+            <div class="person"><span class="av e">🧄</span><div class="who"><b>Garlic Naan Bandit</b><small><span class="status owes">owes ⏳</span></small></div><div class="amt">£27.84</div><div class="btn sm">Mark paid</div></div>
+          </div>
+          <div class="btn" style="margin-top:16px">Chase on WhatsApp 💬</div>
+          <div class="you" style="margin-top:8px;font-size:12px">"Still owed for Dishoom 🧾 Tom £22.11 · Bandit £27.84, pay here: tabsplit…/t/K7Q2"</div>
+        </div>
+        <div class="foot">
+          <div class="btn ink">Unlock bill</div>
+          <div class="hostbar"><span>⚙ Mode</span><span>Share</span><span>QR</span><span>Big screen</span></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 5. WHEEL -->
+    <div class="col" data-s="wheel">
+      <div class="cap">5 · Spin for it 🎡 <span>every phone, same result</span></div>
+      <div class="phone"><div class="scr"><div class="notch"></div>
+        <div class="body" style="position:relative">
+          <div class="kicker">Spin for it · Dishoom Kensington</div>
+          <div class="h">£74.93 · one person pays</div>
+          <div class="you">5 on the wheel · nobody sat out</div>
+          <div class="wheelwrap"><div class="pointer"></div><svg id="wheel" viewBox="-150 -150 300 300" width="300" height="300"></svg><div class="confetti" id="confetti"></div></div>
+          <div class="result"><div class="r1">🎉 Tom pays £74.93</div><div class="you" style="margin-top:4px">to the waiter · <b style="color:oklch(0.45 0.14 150)">Settled ✅</b></div></div>
+        </div>
+        <div class="foot">
+          <div class="btn" style="opacity:.45">Sit this one out</div>
+          <div class="you" style="text-align:center;margin-top:8px">The host's phone picks the winner once; every phone and the big screen spin to it.</div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+<script>
+  // Wheel: slices in wheelOrder, clockwise from the top; rotated so Tom's slice sits under the pointer,
+  // exactly as wheelRotation(2, 5) does (360 - 2.5 * 72 = 180 degrees, plus whole turns).
+  const people = [["Bandit 🧄", "var(--g5)"], ["Faizan", "var(--g1)"], ["Tom", "var(--g3)"], ["Priya", "var(--g2)"], ["Sam 🪫", "var(--g4)"]];
+  const n = people.length, R = 146, svg = document.getElementById("wheel");
+  const pt = (deg, r) => { const a = (deg - 90) * Math.PI / 180; return [r * Math.cos(a), r * Math.sin(a)]; };
+  let html = `<g transform="rotate(${360 - 2.5 * 360 / n})">`;
+  people.forEach(([name, col], i) => {
+    const a0 = i * 360 / n, a1 = (i + 1) * 360 / n, [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R), [tx, ty] = pt((a0 + a1) / 2, R * 0.62);
+    html += `<path d="M0 0 L${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1} Z" fill="${col}" stroke="oklch(0.985 0.008 85)" stroke-width="3"/>`;
+    html += `<text x="${tx}" y="${ty}" fill="#fff" font-family="Archivo" font-weight="800" font-size="15" text-anchor="middle" dominant-baseline="middle" transform="rotate(${(a0 + a1) / 2} ${tx} ${ty})">${name}</text>`;
+  });
+  svg.innerHTML = html + `</g><circle r="22" fill="oklch(0.985 0.008 85)" stroke="oklch(0.17 0.01 60)" stroke-width="3"/>`;
+  const cf = document.getElementById("confetti"), cols = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--green)", "var(--amber)"];
+  let s = 7; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  // Confetti in a ring just outside the wheel, on its left and right sides only, so it never covers text.
+  for (let i = 0; i < 18; i++) {
+    const side = i % 2 ? 90 : 270, [x, y] = pt(side - 50 + rnd() * 100, 158 + rnd() * 16);
+    const e = document.createElement("i");
+    e.style.cssText = `left:${146 + x}px;top:${143 + y}px;background:${cols[i % 5]};transform:rotate(${rnd() * 180}deg);opacity:.85`;
+    cf.appendChild(e);
+  }
+  const only = new URLSearchParams(location.search).get("s");
+  if (only) { document.body.classList.add("single"); document.querySelector(`.col[data-s="${only}"]`)?.classList.add("on"); }
+</script>
+</body>
+</html>

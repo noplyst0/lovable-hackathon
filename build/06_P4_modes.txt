@@ -1,0 +1,9 @@
+Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. Before lock it switches freely; after lock it asks to confirm, then sets status=claiming and clears paid_at.
+Even: totals come from `computeEven(billTotal, all guest ids)`. Show "£X each × N".
+Wheel:
+- Everyone is on the wheel by default (`guests.in_wheel` defaults to true). Each phone shows a big "Sit this one out" toggle. The host can sit out people without a phone.
+- With ≥2 in, the host taps Spin: `pickWinner(wheelOrder(in-wheel ids))`, then save `wheel_winner_id` and `wheel_spun_at = now()`.
+- Slices: equal, starting at the top, clockwise, in `wheelOrder` (by guest id, never by name). On every phone and on `/screen`, start the 5s spin (0 → `wheelRotation(winnerIndex, n)` degrees, ease-out) when `wheel_winner_id` changes from null to a value while the page is open. Don't time the animation from `wheel_spun_at`, because phone clocks drift. If the page *loads* with a winner already set, show the result without spinning.
+- Result: "🎉 <name> pays £<billTotal>", with totals from `computeWheel`. The host chooses `wheel_pay_to`: waiter → status=settled; host → the winner sees the Pay screen for the full amount, and the bill is settled when they mark paid (or straight away if the host won).
+Add person without a phone (host): "+ Add person" creates a guest with has_phone=false and a 🪫 emoji. They count in Split evenly and the wheel only; hide them in Split by items. The host can mark them paid.
+Show a "Who had the <item>? 👀" banner when 1–2 items remain unclaimed. Don't write tests or run browser checks. Don't change files or behaviour not mentioned here.

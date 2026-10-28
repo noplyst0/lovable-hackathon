@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Demo receipt</title>
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  body { padding: 16px; }
+  .r {
+    box-sizing: border-box; width: 400px; padding: 28px 26px 22px; background: #fbfaf7;
+    font: 15px/1.45 Menlo, "Courier New", monospace; color: #1b1b1b;
+    box-shadow: 0 0 0 1px #e6e2da;
+  }
+  .c { text-align: center; }
+  .brand { font: 700 30px/1 Georgia, "Times New Roman", serif; letter-spacing: 6px; margin: 4px 0 6px; }
+  .sub { letter-spacing: 3px; font-size: 13px; }
+  hr { border: 0; border-top: 1px dashed #555; margin: 12px 0; }
+  hr.d { border-top: 3px double #222; }
+  .row { display: flex; justify-content: space-between; white-space: pre; }
+  .row .q { width: 2.2ch; }
+  .row .n { flex: 1; }
+  .tot { font-weight: 700; font-size: 19px; margin: 4px 0; }
+  .small { font-size: 12px; color: #444; }
+  .demo { margin-top: 18px; font-size: 10px; color: #8a857c; text-align: center; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div class="r">
+  <div class="c brand">DISHOOM</div>
+  <div class="c sub">KENSINGTON</div>
+  <hr>
+  <div class="row"><span>Table 12</span><span>Covers 4</span></div>
+  <div class="row"><span>Server: Asha</span><span>28/10/26 19:42</span></div>
+  <div class="row"><span>Check #4471</span><span></span></div>
+  <hr>
+  <div class="row"><span class="q">1</span><span class="n">Chicken Ruby</span><span>15.90</span></div>
+  <div class="row"><span class="q">1</span><span class="n">House Black Daal</span><span>9.90</span></div>
+  <div class="row"><span class="q">1</span><span class="n">Lamb Biryani</span><span>16.90</span></div>
+  <div class="row"><span class="q">2</span><span class="n">Garlic Naan</span><span>9.00</span></div>
+  <div class="row"><span class="q">1</span><span class="n">Okra Fries</span><span>5.50</span></div>
+  <div class="row"><span class="q">1</span><span class="n">Mango Lassi</span><span>5.50</span></div>
+  <div class="row"><span class="q">1</span><span class="n">Masala Chai</span><span>3.90</span></div>
+  <hr>
+  <div class="row"><span>Subtotal</span><span>66.60</span></div>
+  <div class="row"><span>Optional service 12.5%</span><span>8.33</span></div>
+  <hr class="d">
+  <div class="row tot"><span>TOTAL</span><span>£74.93</span></div>
+  <hr class="d">
+  <div class="row small"><span>VAT @ 20% included</span><span>12.49</span></div>
+  <div class="row small"><span>Net</span><span>62.44</span></div>
+  <hr>
+  <div class="c small">Thank you for dining with us</div>
+  <div class="demo">TABSPLIT DEMO RECEIPT · NOT A REAL BILL</div>
+</div>
+</body>
+</html>
