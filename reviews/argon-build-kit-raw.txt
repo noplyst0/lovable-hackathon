@@ -1,0 +1,150 @@
+1. **SEVERITY: BLOCKER** — Wheel spin unmounts at `t = 0ms` (skipping the 5s animation), and Reset / mode-switch never clears `wheel_winner_id`
+   - **File + exact text:**
+     - [build/06_P4_modes.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/06_P4_modes.txt#L1-L7) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L354-L360)):
+       `Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. Before lock it switches freely; after lock it asks to confirm, then sets status=claiming and clears paid_at.`
+       ...
+       `Result: "🎉 <name> pays £<billTotal>", with totals from computeWheel. The host chooses wheel_pay_to: waiter → status=settled; host → the winner sees the Pay screen for the full amount, and the bill is settled when they mark paid (or straight away if the host won).`
+     - [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L7) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L342)):
+       `- Reset: delete claims, clear paid_at, status=claiming.`
+   - **Concrete failure:**
+     1. `bills.wheel_pay_to` defaults to `'waiter'`. If the host sets `status = 'settled'` when tapping Spin (or if `/t/:code` switches to the `Settled` or `Pay` view as soon as `status = 'settled'` / `wheel_winner_id` arrives), every phone unmounts the wheel at `t = 0ms` and jumps straight to Settled/Pay — **the 5-second wheel spin never plays on stage**.
+     2. Neither `Reset` (P2) nor the mode switch (P4) clears `wheel_winner_id`, `wheel_spun_at`, or `settled_at`, and P4 doesn't mention switching modes when `status = 'settled'`. Once spun once in rehearsal, `wheel_winner_id` remains non-null and the table can never spin again.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L342-L360), then re-run [make_build_kit.py](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/make_build_kit.py)):**
+     - In P2 ([build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L7)):
+       `- Reset: delete claims, clear paid_at, wheel_winner_id, wheel_spun_at and settled_at, and set status=claiming.`
+     - In P4 ([build/06_P4_modes.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/06_P4_modes.txt#L1-L7)):
+       `Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. In claiming it switches freely; in locked or settled it asks to confirm, then sets status=claiming and clears paid_at, wheel_winner_id, wheel_spun_at and settled_at.`
+       ...
+       `- Keep the Wheel view mounted while mode='wheel'. Before spinning, the host sees a "Pay to waiter / Pay to host" (wheel_pay_to) toggle, a "Spin 🎡" button (enabled when ≥2 are in), and a "Sit out" toggle next to any no-phone guest. Only AFTER the 5s spin animation finishes (or immediately if the page opened with wheel_winner_id already set), show the result card "🎉 <name> pays £<billTotal>" + confetti below the wheel: if wheel_pay_to='waiter', show "to the waiter · Settled ✅" on the card and set status=settled after the 5s spin; if 'host' (using computeWheel), show the Pay details below the card on the winner's phone after the 5s spin, and set status=settled when they mark paid (or after the 5s spin if the host won).`
+
+2. **SEVERITY: BLOCKER** — Duplicate guest rows created on join in TanStack Start (`useEffect` async race + React StrictMode + SSR `localStorage`)
+   - **File + exact text:**
+     - [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L3) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L338)):
+       `On /t/:code (never on /screen): if there's no local identity and the bill is claiming, create the guest row immediately on page load with the alias, and save its id.`
+   - **Concrete failure:**
+     Because `supabase.from('guests').insert(...)` is async, when Lovable writes `localStorage.setItem('tabsplit:guest:' + code, data.id)` inside `.then()` after the DB insert resolves, React StrictMode's double-invocation on mount (and any re-render from the initial bill/realtime fetch while the insert is in flight) sees `localStorage` is still empty and fires a second `INSERT`. Every joining phone creates **2 duplicate guest rows** on the table. Also, reading `localStorage` during SSR render in TanStack Start causes hydration errors, and a stale `localStorage` guest ID after a DB reset causes FK errors on `claims`.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L338) / [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L3)):**
+     `On /t/:code (never on /screen), inside a client-only useEffect after fetching the bill and guests: read localStorage key tabsplit:guest:<code>. If that id is missing (or not present in the fetched guests list while status='claiming'), synchronously generate const newId = crypto.randomUUID(), save newId to tabsplit:guest:<code> immediately BEFORE awaiting the request, and upsert the guest row ({ id: newId, bill_id, name, emoji, color }) so StrictMode or re-renders never insert duplicate guests.`
+
+3. **SEVERITY: BLOCKER** — `/t/:code/screen` never renders `locked` (`paid ✅` / `owes ⏳`), `settled`, or `even` states on the projector
+   - **File + exact text:**
+     - [build/01_P1_create_project.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/01_P1_create_project.txt#L143) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L330)) and [mockups/screen.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/screen.png):
+       `- /t/:code/screen: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, items with claimer chips (unclaimed pulse red), people + totals, and a progress bar.`
+   - **Concrete failure:**
+     In the stage pitch ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L435)), the host locks the bill and says *"A teammate pays → ✅ on screen."* However, [mockups/screen.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/screen.png), P1, and P2 only specify `/t/:code/screen` for the `claiming` state (`£X of £Y claimed` and `N unclaimed`). Neither P1 nor P2 instructs Lovable to render `paid ✅` / `owes ⏳` badges or `£X of £Y back` on `/t/:code/screen` when `status === 'locked'`, or `Settled ✅` + confetti when `status === 'settled'`. When the teammate taps "I've paid" on stage, nothing changes on the big screen.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L330) / [build/01_P1_create_project.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/01_P1_create_project.txt#L143)):**
+     `- /t/:code/screen: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, the center panel (items with claimer chips where unclaimed pulse red in items mode, equal shares in even mode, or the big wheel + result banner in wheel mode), the people list + totals (adding paid ✅ / owes ⏳ badges and "paid the bill" for the host once status is locked or settled), and the bottom bar (claimed progress + unclaimed pill while claiming; paid progress £X of £Y back while locked; Settled ✅ banner + confetti when settled).`
+
+4. **SEVERITY: BLOCKER** — Step 3 host payment details on `/new` are not remembered in `localStorage`, and Monzo/Revolut inputs aren't sanitized
+   - **File + exact text:**
+     - [build/01_P1_create_project.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/01_P1_create_project.txt#L134) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L321)):
+       `(3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table".`
+     - [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L2-L9) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L337-L344)):
+       `Pay methods are shown only if the host filled them in.`
+   - **Concrete failure:**
+     On stage, the host creates a live table on `/new` during a 2-minute pitch. Step 1 has the 1-tap `Tonight's receipt` preset, but Step 3 starts with 5 blank inputs every time. Either the host wastes ~25 seconds typing name, Monzo username, Revolut tag, sort code, and account number on a phone keyboard in front of judges, or skips them and **zero payment buttons appear after locking the bill**. Worse, if `@username`, a full URL, or a trailing iOS autocomplete space is typed into Monzo/Revolut, [`monzoLink`](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/split.ts#L50-L51) encodes `%40` or `%20` and `monzo.me` / `revolut.me` 404s. (Also complete the unchecked pre-18:00 `monzo.me` and `revolut.me` check in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L405-L406).)
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L337) / [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L2)):**
+     `On /new step 3, persist and pre-fill the host's details (host_name, host_monzo, host_revolut, host_sort_code, host_account_number) in localStorage under tabsplit:host so rehearsal values are ready in one tap on stage; strip leading @, monzo.me/ or revolut.me/ prefixes, and whitespace from host_monzo and host_revolut. /new creates a bill (random 4-char code from ABCDEFGHJKMNPQRSTUVWXYZ23456789, retry if taken), one receipt, its items and a host guest (is_host=true), saves the host's id in tabsplit:guest:<code>, adds the code to tabsplit:recent, and goes to /t/:code.`
+
+5. **SEVERITY: MAJOR** — Mockup contradictions: literal spec annotations inside [mockups/track.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/track.png) & [mockups/wheel.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/wheel.png), missing host claiming footer in [mockups/pick.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/pick.png) & [mockups/table.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/table.png), and attaching `wheel.png` to P1
+   - **File + exact text:**
+     - [mockups/mockups.html](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/mockups.html#L203) ([mockups/track.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/track.png)):
+       `<div class="you" style="margin-top:14px;font-size:12px">WhatsApp text: "Still owed for Dishoom Kensington 🧾 Tom £22.11 · Garlic Naan Bandit £27.84, pay here: tabsplit…/t/K7Q2"</div>`
+     - [mockups/mockups.html](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/mockups.html#L225) ([mockups/wheel.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/wheel.png)):
+       `<div class="you" style="text-align:center;margin-top:8px">The host's phone picks the winner once; every phone and the big screen spin to it.</div>`
+     - [build/01_P1_create_project.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/01_P1_create_project.txt#L142-L144) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L329-L331)):
+       `- The host sees a permanent Lock bill button in the footer and a ⚙️ menu (mode, add person, reset, share/QR, big screen).` ... `The attached images are layout references for Pick, Table, Pay, Track, the wheel and the big screen (1280×720); where an image and this text differ, this text wins.`
+   - **Concrete failure:**
+     1. [mockups/track.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/track.png) and [mockups/wheel.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/wheel.png) contain spec notes (`WhatsApp text: "..."` and `The host's phone picks the winner once...`) inside the phone body/footer; Lovable copies text inside phone mockups verbatim into the UI.
+     2. Attaching [mockups/wheel.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/wheel.png) to P1 (when Wheel is a P4 feature not listed in P1's state list) causes Lovable to build an un-specced wheel during P1.
+     3. Neither [mockups/pick.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/pick.png) nor [mockups/table.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/table.png) shows the host's footer while claiming. If Lovable replaces the Pick (`Continue →`) and Table (`← Edit my items`) footer button with `Lock bill` for the host, the host cannot navigate between Pick and Table to claim their own food. Also, [mockups/track.png](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/mockups/track.png) labels the gear `⚙ Mode` instead of a menu containing `(mode, add person, reset, share/QR, big screen)`.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L329-L331) / [build/01_P1_create_project.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/01_P1_create_project.txt#L142-L144), and attach `wheel.png` only in P4):**
+     - Replace the host bullet in P1 with:
+       `- When viewing as the host during claiming, keep the normal Pick ("Continue →") and Table ("← Edit my items") step buttons so the host can claim their own items, and show a permanent host footer bar with "Lock bill" plus Share, QR, Big screen, and a ⚙️ menu (mode switch, + Add person without a phone, Reset).`
+     - Replace the attachment sentence in P1 with:
+       `The attached images are layout references for Pick, Table, Pay, Track and the big screen (1280×720); ignore the "Who had the Okra Fries?" banner in pick.png and the "WhatsApp text:" preview note in track.png, and where an image and this text differ, this text wins. Don't write tests or run browser checks.`
+
+6. **SEVERITY: MAJOR** — P3 `parse-receipt` traps: `service_charge_pence: 0` breaks `crown-anchor.png`, `data:` URL prefix mismatch, `verify_jwt` 401s, and `tabsplit:tonight` cannot be updated in rehearsal
+   - **File + exact text:**
+     - [build/05_P3_receipt_photos.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/05_P3_receipt_photos.txt#L1-L17) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L348-L351)):
+       `On /new step 1, "Add photos" accepts up to 4 images for one receipt (accept="image/*" multiple). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send them as base64 JPEGs in the request body. Don't create a storage bucket or store photos.`
+       `Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under tabsplit:tonight, and one tap sends them to the reader.`
+       `Create the edge function parse-receipt. It uses Lovable AI, the built-in gateway with LOVABLE_API_KEY. Do not ask me for any API key.`
+       ...
+       `set service_mode = 'included' with service_included_pence = service_charge_pence if a service charge was found (otherwise 'add' at 12.5%)`
+   - **Concrete failure:**
+     1. In the schema example (`"service_charge_pence": 833`), `service_charge_pence` is shown as a number (not `null`), so Gemini frequently returns `0` when no service charge is printed. If Lovable checks `if (service_charge_pence != null)`, `0` is treated as "service found", setting `service_mode = 'included'` (`0p`) instead of `'add'` (12.5%) and **failing test #3 (`crown-anchor.png`) in [assets/receipts/EXPECTED.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/assets/receipts/EXPECTED.md#L72-L75)**.
+     2. Saying "Send them as base64 JPEGs" without specifying `data:image/...;base64,...` data URLs often leads Lovable to strip the `data:` prefix on the client and pass raw base64 into `image_url.url` at `https://ai.gateway.lovable.dev/v1/chat/completions`, which returns HTTP 400.
+     3. Because TabSplit has no login, if `parse-receipt` doesn't have `verify_jwt = false` in `supabase/config.toml`, anon calls can fail with HTTP 401.
+     4. Once `tabsplit:tonight` is set when testing `EXPECTED.md` at 19:00, tapping "Tonight's receipt" immediately submits the cached test photo with no UI way to replace `tabsplit:tonight` with the real dinner receipt before going on stage.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L348-L351) / [build/05_P3_receipt_photos.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/05_P3_receipt_photos.txt#L1-L17)):**
+     `On /new step 1, "Add photos" accepts up to 4 images for one receipt (accept="image/*" multiple). Resize each to max 1280px JPEG as a full data:image/jpeg;base64,... data URL (if one can't be decoded on canvas, read the original file as a data:...;base64,... data URL via FileReader). Save the latest picked data URLs in localStorage under tabsplit:tonight and send them in the request body. Don't create a storage bucket or store photos.`
+     `Add "Tonight's receipt" (plus a small "change saved photos" link): if tabsplit:tonight exists in localStorage, one tap sends those saved data URLs straight to parse-receipt without opening the file picker; otherwise it opens the file picker and saves to tabsplit:tonight.`
+     `Create the edge function parse-receipt (set verify_jwt = false in supabase/config.toml and invoke via supabase.functions.invoke). It calls https://ai.gateway.lovable.dev/v1/chat/completions with Bearer LOVABLE_API_KEY (Lovable AI gateway; do not ask me for any API key) and model google/gemini-2.5-flash, sending all photo data URLs in one user message as { type: "image_url", image_url: { url: dataUrl } } parts, and uses tool calling that returns exactly:`
+     ...
+     `Turn quantities into unit rows (spread leftover pennies with allocate), never create negative items, set service_mode = 'included' with service_included_pence = service_charge_pence ONLY if service_charge_pence != null && service_charge_pence > 0 (otherwise when null or 0, set service_mode = 'add' at 12.5%), show "Receipt has a £X discount: edit prices to apply it." if discount_pence != null && discount_pence > 0, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.`
+
+7. **SEVERITY: MAJOR** — Running DDL via MCP `query_database` leaves `src/integrations/supabase/types.ts` empty, causing strict-TS compile failures in P2
+   - **File + exact text:**
+     - [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L1) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L336)):
+       `The tables bills, receipts, items, guests and claims already exist with seed table DEMO. Don't create or alter tables. Replace all mock data with real queries.`
+   - **Concrete failure:**
+     When tables are created via the external MCP `query_database` tool rather than Lovable's internal migration tool, Lovable's generated `src/integrations/supabase/types.ts` often remains at the empty default (`Tables: { [_ in never]: never }`). In P2, every `supabase.from('bills')` call then fails strict TypeScript with `Argument of type '"bills"' is not assignable to parameter of type 'never'`, burning time and extra loops or prompting for migration approval.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L336) / [build/04_P2_data_realtime.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/04_P2_data_realtime.txt#L1)):**
+     `The tables bills, receipts, items, guests and claims already exist with seed table DEMO. Don't create or alter tables or run migrations. Replace all mock data with real queries (if src/integrations/supabase/types.ts does not yet include those table types, cast the client as const db = supabase as any in a single helper file and type query results using the interfaces in src/lib/mock.ts).`
+
+8. **SEVERITY: MAJOR** — `guests.color` is `NOT NULL` with no SQL `DEFAULT`, so P4 (`+ Add person`) and P5 (`Simulate table`) inserts fail if `color` is omitted
+   - **File + exact text:**
+     - [build/02_schema.sql](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/02_schema.sql#L45) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L229)):
+       `color text not null,`
+     - [build/06_P4_modes.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/06_P4_modes.txt#L8) & [build/07_P5_polish.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/07_P5_polish.txt#L3):
+       `Add person without a phone (host): "+ Add person" creates a guest with has_phone=false and a 🪫 emoji.`
+       `/t/:code?demo=1 shows "Simulate table", which adds 4 guests (Priya, Tom, Sam, Jess) who claim random unclaimed items 1–2s apart.`
+   - **Concrete failure:**
+     Every other metadata column on `guests` (`emoji`, `is_host`, `has_phone`, `in_wheel`) has a SQL `DEFAULT` in [build/02_schema.sql](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/02_schema.sql#L40-L51), except `color text not null`. Neither P4 nor P5 mentions setting `color`, so inserting a no-phone guest or simulated guest without `color` fails with Postgres `23502 not_null_violation`.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L229) / [build/02_schema.sql](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/02_schema.sql#L45)):**
+     `color text not null default 'oklch(0.52 0.22 262)',`
+
+9. **SEVERITY: MAJOR** — Even mode (`mode = 'even'`) screen transitions and post-lock calculations on Pay/Track are underspecified in P4
+   - **File + exact text:**
+     - [build/06_P4_modes.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/06_P4_modes.txt#L2) ([TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L355)):
+       `Even: totals come from computeEven(billTotal, all guest ids). Show "£X each × N".`
+   - **Concrete failure:**
+     `06_P4_modes.txt` doesn't tell Lovable that `mode === 'even'` skips the Pick (item-claiming) step during `claiming`, nor that `Pay`, `Track`, `/screen`, and [`isSettled`](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/split.ts#L114-L118) after locking must also use [`computeEven`](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/split.ts#L80-L84) (including `has_phone = false` guests) instead of [`computeBill`](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/split.ts#L61-L77). Without this, guests stay on the Pick screen in Even mode or revert to £0 item-based totals on Pay/Track once locked.
+   - **Exact fix (replacement wording in [TABSPLIT_IDEA2.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/TABSPLIT_IDEA2.md#L355) / [build/06_P4_modes.txt](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/06_P4_modes.txt#L2)):**
+     `Even: while claiming, skip Pick and show the Table view directly with a banner "£X each × N" (instead of the unclaimed pill) and everyone's equal share from computeEven(billTotal, all guest ids including has_phone=false); when locked or settled, Pay, Track, /screen and isSettled() also use the SplitResult from computeEven.`
+
+10. **SEVERITY: MINOR** — Run order in [build/README.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/README.md): `enable_database` runs before verifying P1 is idle, `wheel.png`'s 18:00 upload expires before 19:35 P4, and `deploy_project` is missing after P2/P3/P4
+    - **File + exact text:**
+      - [build/README.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/README.md#L15-L28):
+        ```markdown
+        | 18:00 | Upload the 6 P1 attachments | `mockups/{pick,table,pay,track,wheel,screen}.png` | `get_file_upload_url` ×6 → `build/put_upload.sh <png> '<url>' '<user_id>'` | free |
+        | 18:01 | **P1** UI shell + attachments | `01_P1_create_project.txt` | `create_project` (workspace above, `files` = the 6 file_ids) → `render_project_widget` | ~5 |
+        | 18:01 | Project knowledge | `00_project_knowledge.txt` | `set_project_knowledge` | free |
+        | ~18:10 | DB on, schema, seed, verify select | `02_schema.sql`, `03_seed.sql` | `enable_database` + `query_database` | free |
+        | ~18:12 | Check P1: `get_diff`, `split.ts` byte-identical, screenshot | | `read_file`, `get_project` | free |
+        | 18:15 | **P2** data + realtime + lock/pay | `04_P2_data_realtime.txt` | `send_message` | ~5 |
+        | 19:00 | **P3** receipt photos, then score the reader with `assets/receipts/EXPECTED.md` | `05_P3_receipt_photos.txt` | `send_message` | ~4 |
+        | 19:35 | **P4** modes + wheel + no-phone person (re-attach `mockups/wheel.png`) | `06_P4_modes.txt` | `send_message` | ~5 |
+        | 20:10 | **P5** polish + demo safety, publish | `07_P5_polish.txt` | `send_message`, `deploy_project` | ~3 |
+        ```
+    - **Concrete failure:**
+      1. Calling `enable_database` at `~18:10` before checking that P1's agent run is finished (`~18:12`) can mutate repo files mid-run.
+      2. Line 27 notes that ephemeral uploads expire after 1 hour; uploading `wheel.png` at 18:00 and reusing its `file_id` at 19:35 (95 minutes later) will fail with an expired attachment.
+      3. `deploy_project` (free) is only called at 20:10 after P5, so the public `*.lovable.app` URL won't have P2, P3, or P4 live when testing on external phones at 18:50, 19:25, and 20:00.
+    - **Exact fix (replacement table in [build/README.md](file:///Users/faizanarif/Documents/Hackathons/lovable-tabsplit/build/README.md#L13-L25)):**
+      ```markdown
+      | Time | Step | File | How | Credits |
+      |---|---|---|---|---|
+      | 18:00 | Upload the 5 P1 attachments | `mockups/{pick,table,pay,track,screen}.png` | `get_file_upload_url` ×5 → `build/put_upload.sh <png> '<url>' '<user_id>'` | free |
+      | 18:01 | **P1** UI shell + attachments | `01_P1_create_project.txt` | `create_project` (workspace above, `files` = the 5 file_ids) → `render_project_widget` | ~5 |
+      | 18:01 | Project knowledge | `00_project_knowledge.txt` | `set_project_knowledge` | free |
+      | ~18:08 | Check P1 idle: `get_diff`, `split.ts` byte-identical, screenshot | | `get_project`, `read_file` | free |
+      | ~18:10 | DB on, schema, seed, verify select | `02_schema.sql`, `03_seed.sql` | `enable_database` + `query_database` | free |
+      | 18:15 | **P2** data + realtime + lock/pay, publish for 2-phone test | `04_P2_data_realtime.txt` | `send_message` → `deploy_project` | ~5 |
+      | 19:00 | **P3** receipt photos, publish, score with `assets/receipts/EXPECTED.md` | `05_P3_receipt_photos.txt` | `send_message` → `deploy_project` | ~4 |
+      | 19:34 | Upload `mockups/wheel.png` + **P4** modes + wheel + no-phone person, publish | `06_P4_modes.txt` | `get_file_upload_url` → `send_message` → `deploy_project` | ~5 |
+      | 20:10 | **P5** polish + demo safety, publish | `07_P5_polish.txt` | `send_message` → `deploy_project` | ~3 |
+      | 20:30 | 🔍 Argon red-team of the live app | | `agy -p … --model gemini-4-argon-high` | 0 |
+      | **20:45** | **🔒 Feature freeze** | | | |
+      ```

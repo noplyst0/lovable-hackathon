@@ -5,7 +5,7 @@
 **Spec owner:** Claude (lead) · Product decisions: Faizan · Critic: Argon 🔍
 
 > **This file is the single source of truth for the build.** A new session (Claude, Argon or a teammate) should be able to build TabSplit from this file alone.  
-> **History:** v1 = Gemini's proposal (git history) · v2 = Claude's rewrite + research · v2.1 = Argon review round 1 (§15) · **v3 = Faizan's product decisions (joining by code/link, two-step guest screen, multi-photo receipts, rounds, split evenly, spin the wheel, the full payment flow) + test-run results.** · **v3.1 = Argon review round 2 applied (§16).**
+> **History:** v1 = Gemini's proposal (git history) · v2 = Claude's rewrite + research · v2.1 = Argon review round 1 (§15) · **v3 = Faizan's product decisions (joining by code/link, two-step guest screen, multi-photo receipts, rounds, split evenly, spin the wheel, the full payment flow) + test-run results.** · **v3.1 = Argon review round 2 applied (§16).** · **v3.2 = Argon review round 3 of the build kit + mockups applied (§17).**
 
 ---
 
@@ -226,7 +226,7 @@ create table guests (
   bill_id uuid not null references bills(id) on delete cascade,
   name text not null,
   emoji text not null default '🍽️',
-  color text not null,
+  color text not null default 'oklch(0.52 0.22 262)',
   is_host boolean not null default false,
   has_phone boolean not null default true,
   in_wheel boolean not null default true,          -- opt-out (v3.1)
@@ -318,7 +318,7 @@ $$;
 > Build the UI for TabSplit, a mobile-first web app for splitting a restaurant bill. **UI only, no backend yet:** typed mock data in `src/lib/mock.ts` shaped exactly like these tables: [paste the §6 column lists for bills, receipts, items, guests, claims]. Create `src/lib/split.ts` with exactly this code and use it for every total: [paste Appendix A].
 > Routes:
 > - `/`: "Start a table", a "Join" box for a 4-character code, and "Your recent tables".
-> - `/new`: 3 steps on one route. (1) Receipt: Use demo receipt (fills step 2 with the Dishoom items) / Type it in / Add photos (a placeholder for now). (2) Review: editable items, the check line "Receipt says £Y, we count £X (items + service)", and the service selector. (3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table".
+> - `/new`: 3 steps on one route. (1) Receipt: Use demo receipt (fills step 2 with the Dishoom items) / Type it in / Add photos (a placeholder for now). (2) Review: editable items, the check line "Receipt says £Y, we count £X (items + service)", and the service selector. (3) You: host name, Monzo, Revolut, sort code, account number (all optional) → "Open the table". Remember these on this phone (localStorage `tabsplit:host`) and pre-fill them next time. Strip a leading @, any monzo.me/ or revolut.me/ prefix and all spaces from the Monzo and Revolut fields.
 > - `/t/:code`, with states switched by a dev toggle for now:
 >   - Pick: item cards, tap to claim/unclaim, shared ÷ n, sticky "Your share" footer + Continue.
 >   - Table: an "N unclaimed · £X" pill that expands, then you first, then everyone else with their items and totals, and "← Edit my items".
@@ -326,37 +326,38 @@ $$;
 >   - Track (host): rows with owes/paid, Mark paid/Undo, Chase on WhatsApp.
 >   - Who are you?: unpaid non-host names, with "Just watching 👀" on top.
 >   - Settled: ✅ + confetti.
->   - The host sees a permanent **Lock bill** button in the footer and a ⚙️ menu (mode, add person, reset, share/QR, big screen).
-> - `/t/:code/screen`: a projector view that fits 100vh, with a big QR of the table link, the code in huge type, items with claimer chips (unclaimed pulse red), people + totals, and a progress bar.
-> Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: [Prompt 0 design line]. The attached images are layout references for Pick, Table, Pay, Track, the wheel and the big screen (1280×720); where an image and this text differ, this text wins. Don't write tests or run browser checks.
+>   - The host claims their own food like everyone else (same Pick ⇄ Table buttons), and also has a permanent host bar with **Lock bill**, Share, QR, Big screen and a ⚙️ menu (mode, add person, reset).
+> - `/t/:code/screen`: a read-only projector view that fits 100vh, with a big QR of the table link and the code in huge type, and it follows the table's state. Claiming: items with claimer chips (unclaimed pulse red), people + totals, a "£X of £Y claimed" bar and the unclaimed pill. Locked: people with paid ✅ / owes ⏳ and a "£X of £Y back" bar. Settled: a big Settled ✅.
+> Guests get a random funny food alias + emoji with inline rename, and no name gate. Design: [Prompt 0 design line]. The attached images are layout references for Pick, Table, Pay, Track and the big screen (1280×720). Ignore the "Who had the …?" banner in the Pick image (it comes later). Where an image and this text differ, this text wins. Don't write tests or run browser checks.
 
 ### (free) Claude: `enable_database` → §6 SQL → seed `DEMO` → verify with a `select`.
 
 ### P2: Wire Data + Realtime + Lock/Pay (Phase A complete)
-> The tables bills, receipts, items, guests and claims already exist with seed table `DEMO`. Don't create or alter tables. Replace all mock data with real queries.
+> The tables bills, receipts, items, guests and claims already exist with seed table `DEMO` (created outside Lovable). Don't create or alter tables or run migrations. If `src/integrations/supabase/types.ts` doesn't include them, regenerate it from the live database; if you can't, type the queries with the row types in `src/lib/mock.ts` through one small helper. Replace all mock data with real queries.
 > `/new` creates a bill (random 4-char code from ABCDEFGHJKMNPQRSTUVWXYZ23456789, retry if taken), one receipt, its items and a host guest (is_host=true), saves the host's id in `tabsplit:guest:<code>`, adds the code to `tabsplit:recent`, and goes to `/t/:code`.
-> On `/t/:code` (never on `/screen`): if there's no local identity and the bill is claiming, **create the guest row immediately on page load** with the alias, and save its id. If the bill is locked and there's no local identity, show "Who are you?" listing only unpaid non-host guests, with "Just watching 👀" (view only, no guest row) on top. Taps insert/delete claims optimistically.
+> On `/t/:code` (never on `/screen`), in a client-only effect after the bill and guests load: if `tabsplit:guest:<code>` is missing (or not in the guest list) and the bill is claiming, **generate the id with `crypto.randomUUID()`, save it to localStorage BEFORE the request, then upsert the guest row with that id** and the alias, so a double effect or re-render can never create two guests. Never read localStorage during server render. If the bill is locked and there's no local identity, show "Who are you?" listing only unpaid non-host guests, with "Just watching 👀" (view only, no guest row) on top. Taps insert/delete claims optimistically.
 > Realtime on `/t/:code` and `/screen`: subscribe to postgres_changes with **`id=eq.<bill.id>` for bills** and **`bill_id=eq.<bill.id>` for receipts, items, guests and claims**. On any event, debounce a refetch by 250ms, ignore stale responses, and keep taps that are still saving on top. Also refetch on reconnect and on `visibilitychange`.
 > Host actions:
 > - Lock: a permanent footer button; status=locked; it pulses when 0 items are unclaimed. Before inserting a claim, check the bill is still claiming; if not, undo the tap and show "The bill's locked".
-> - Reset: delete claims, clear paid_at, status=claiming.
+> - Reset: delete claims; clear paid_at, wheel_winner_id, wheel_spun_at and settled_at; status=claiming.
 > - Mark paid / Undo: set or clear paid_at.
 > Guest "I've paid" sets paid_at. When `isSettled()` becomes true, set status=settled + settled_at. Pay methods are shown only if the host filled them in. Bank details are shown only after lock.
 > Share button: `navigator.share` with "Join our table on TabSplit: <link> (code <code>)", falling back to copying the link. Don't write tests or run browser checks.
 
 ### P3: Receipt Photos (Phase B)
-> On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send them as base64 JPEGs in the request body. **Don't create a storage bucket or store photos.**
-> Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under `tabsplit:tonight`, and one tap sends them to the reader.
-> Create the edge function `parse-receipt`. It uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key.** Use the vision-capable model `google/gemini-2.5-flash` (or the current Gemini Flash if that's retired), send all photos in one request, and use tool calling that returns exactly: [paste §8 schema + instructions].
-> Turn quantities into unit rows (spread leftover pennies), never create negative items, set `service_mode = 'included'` with `service_included_pence = service_charge_pence` if a service charge was found (otherwise `'add'` at 12.5%), show "Receipt has a £X discount: edit prices to apply it." if `discount_pence` is set, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.
+> On `/new` step 1, "Add photos" accepts up to 4 images for one receipt (`accept="image/*" multiple`). Resize each to max 1600px JPEG; if one can't be decoded, send the original. Send each as a full `data:image/jpeg;base64,…` data URL in the request body. **Don't create a storage bucket or store photos.**
+> Add "Tonight's receipt": in rehearsal the host picks up to 4 photos once; keep them resized (max 1280px) in localStorage under `tabsplit:tonight`, and one tap sends them to the reader without opening the picker. A small "Change saved photos" link replaces them.
+> Create the edge function `parse-receipt`, called with `supabase.functions.invoke`; it must work without login (`verify_jwt = false`). It uses **Lovable AI, the built-in gateway with `LOVABLE_API_KEY`. Do not ask me for any API key.** Use the vision-capable model `google/gemini-2.5-flash` (or the current Gemini Flash if that's retired), send all photos in one request as `image_url` parts with the data URLs, and use tool calling that returns exactly: [paste §8 schema + instructions].
+> Turn quantities into unit rows (spread leftover pennies), never create negative items, set `service_mode = 'included'` with `service_included_pence = service_charge_pence` only if `service_charge_pence` is above 0 (null or 0 → `'add'` at 12.5%), show "Receipt has a £X discount: edit prices to apply it." if `discount_pence` is above 0, and land on Review. Show "Reading receipt…". On error or after 20s, show "Couldn't read that one. Type it in or use the demo receipt." Don't change other screens. Don't write tests or run browser checks.
 
 ### P4: Modes + People (Phase C)
-> Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. Before lock it switches freely; after lock it asks to confirm, then sets status=claiming and clears paid_at.
-> **Even:** totals come from `computeEven(billTotal, all guest ids)`. Show "£X each × N".
+> Add a host ⚙️ mode switch: Split by items / Split evenly / Spin for it 🎡. While claiming it switches freely; when locked or settled it asks to confirm, then sets status=claiming and clears paid_at, wheel_winner_id, wheel_spun_at and settled_at.
+> **Even:** skip Pick: guests go straight to the Table view with a "£X each × N" banner instead of the unclaimed pill. Totals come from `computeEven(billTotal, all guest ids including no-phone people)`, and after lock Pay, Track, `/screen` and `isSettled()` use that same result. `/screen` shows the equal shares.
 > **Wheel:**
 > - Everyone is on the wheel by default (`guests.in_wheel` defaults to true). Each phone shows a big "Sit this one out" toggle. The host can sit out people without a phone.
 > - With ≥2 in, the host taps Spin: `pickWinner(wheelOrder(in-wheel ids))`, then save `wheel_winner_id` and `wheel_spun_at = now()`.
 > - Slices: equal, starting at the top, clockwise, in `wheelOrder` (by guest id, never by name). On every phone and on `/screen`, **start the 5s spin (0 → `wheelRotation(winnerIndex, n)` degrees, ease-out) when `wheel_winner_id` changes from null to a value while the page is open.** Don't time the animation from `wheel_spun_at`, because phone clocks drift. If the page *loads* with a winner already set, show the result without spinning.
+> - While mode is wheel, every phone and `/screen` keep the wheel on screen whatever the status (a settled status must never replace it before the spin ends). After the 5s spin, show the result card under the wheel.
 > - Result: "🎉 <name> pays £<billTotal>", with totals from `computeWheel`. The host chooses `wheel_pay_to`: waiter → status=settled; host → the winner sees the Pay screen for the full amount, and the bill is settled when they mark paid (or straight away if the host won).
 > **Add person without a phone (host):** "+ Add person" creates a guest with has_phone=false and a 🪫 emoji. They count in Split evenly and the wheel only; hide them in Split by items. The host can mark them paid.
 > Show a "Who had the <item>? 👀" banner when 1–2 items remain unclaimed. Don't write tests or run browser checks.
@@ -499,6 +500,24 @@ Argon's verdict: **build with fixes.** Claude checked each finding.
 | C6 isn't DB-level security | ✅ Accepted | C6 and the §14 answer now say "UI gate tonight; pay-by-bank links are the real fix". |
 | Q7: A → B (base64) → C → cut D | ✅ Agreed | Recorded in §0. |
 | Q8: end on the wheel after a pay ✅ | 📝 Noted | Faizan decides on the night. Claude added: a real "everyone paid" Settled can't happen with judges, so the wheel is the natural way to show Settled. |
+
+---
+
+## 17. Argon Review, Round 3 (v3.2): the Build Kit + Mockups (28 Oct, 16:45)
+Argon 4 (High) via `agy -p`, read-only, over `build/`, the mockups and `EXPECTED.md`. Raw output: `reviews/argon-build-kit-raw.txt`. Claude checked each finding.
+
+| Argon finding | Decision | What changed |
+|---|---|---|
+| The wheel view can be replaced by Settled at once (status=settled on spin), so the 5s spin never plays; Reset and the mode switch never clear `wheel_winner_id`, so a rehearsed table can't spin again | ✅ Accepted, **two real bugs** | P4: the wheel stays on screen in wheel mode whatever the status, result card after the spin. Reset (P2) and the mode switch (P4) clear `wheel_winner_id`, `wheel_spun_at`, `settled_at` |
+| Guest row created by an async effect: a StrictMode double effect or a re-render inserts **two guests per phone**; localStorage read during server render | ✅ Accepted, a real bug | P2: client-only effect, `crypto.randomUUID()` saved to localStorage *before* the request, then upsert with that id |
+| `/screen` only specified for claiming, but the pitch says "a teammate pays → ✅ on screen" | ✅ Accepted, a real gap | P1: `/screen` follows the state (claiming / locked with paid ✅ owes ⏳ and "£X of £Y back" / settled). P4: even shares on `/screen` |
+| Host retypes 5 payment fields on stage; "@user" or a pasted monzo.me link breaks the pay link | ✅ Accepted | P1 step 3: remembered in `tabsplit:host` and pre-filled; @, monzo.me/, revolut.me/ and spaces stripped |
+| Mockups: notes inside the phones get copied into the UI; attaching the wheel to P1 invites an early wheel; host's claiming footer unclear; "Who had the…" banner is a P4 feature | ✅ Accepted | Notes removed from the phone images. P1 attaches 5 images (wheel goes with P4). The host claims with the same Pick ⇄ Table buttons plus a host bar (Lock bill, Share, QR, Big screen, ⚙️). P1 says to ignore the banner |
+| P3: `service_charge_pence: 0` read as "service found" (fails `crown-anchor`); raw base64 instead of data URLs → gateway 400; anon calls 401 without `verify_jwt = false`; "Tonight's receipt" can't be replaced | ✅ Accepted · ⚖️ one part | Service/discount only count when above 0; full `data:image/jpeg;base64` URLs as `image_url` parts; `supabase.functions.invoke` + `verify_jwt = false`; "Change saved photos" link. **Not taken:** hardcoding the gateway URL (Lovable knows its own gateway; same call as round 1) |
+| Tables made with `query_database` may leave `types.ts` empty, so strict TS fails in P2 | ⚖️ Partly | P2 asks Lovable to regenerate `types.ts` from the live DB first, with a typed helper over `mock.ts` rows as the fallback (not Argon's `supabase as any`) |
+| `guests.color` is NOT NULL with no default, so "+ Add person" and "Simulate table" inserts fail | ✅ Accepted, a real bug | `color ... default 'oklch(0.52 0.22 262)'` |
+| Even mode underspecified: guests stuck on Pick, Pay/Track fall back to item totals | ✅ Accepted | P4: even mode skips Pick, Table shows "£X each × N", and Pay/Track/`/screen`/`isSettled()` all use `computeEven` |
+| Run order: `enable_database` while P1 may still be running; `wheel.png` uploaded at 18:00 expires before P4; nothing published before 20:10, so phones can't test | ✅ Accepted | `build/README.md`: wait for P1 to finish, upload the wheel at P4, `deploy_project` (free) after every phase |
 
 ---
 

@@ -42,7 +42,7 @@ create table guests (
   bill_id uuid not null references bills(id) on delete cascade,
   name text not null,
   emoji text not null default '🍽️',
-  color text not null,
+  color text not null default 'oklch(0.52 0.22 262)',
   is_host boolean not null default false,
   has_phone boolean not null default true,
   in_wheel boolean not null default true,          -- opt-out (v3.1)
