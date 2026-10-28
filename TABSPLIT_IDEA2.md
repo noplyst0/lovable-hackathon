@@ -226,7 +226,9 @@ Reference implementation (tested): **Appendix A**. Prompt 1a pastes it in as `sr
 ## 9. Lovable Build: Prompt Pack & Credit Budget
 
 ### Credits
-- **The hackathon provides more credits. Our current 8 are only for the test run.** Test-run budget: ≤3 credits (Prompts 1a + 1b, maybe 2).
+- **The hackathon provides more credits.** Our own account is the free plan: **5 credits/day, resets at 00:00 London**.
+- **Measured in the test run: Prompt 1a (UI shell, 4 routes) cost 4.9 credits.** Lovable also wrote unit tests and ran browser checks, which add to the cost. **Budget ~5 credits per big prompt and ~1–2 per small fix.** The full plan (1a, 1b, 2, 3) is **~15–20 credits + spares**. Ask the organisers exactly how many we get.
+- To trim cost, add to every prompt: *"Don't write tests or run browser checks; Claude verifies separately."*
 - Per the Lovable MCP docs, **only `create_project` and `send_message` use build credits.** These don't: reading files/diffs, `query_database` (SQL), project knowledge, deploy. Neither do code pushed through **GitHub sync** or edits in Lovable's code editor. *(Confirm all of this in the test run.)*
 - **Plan on the day: 4 build messages (1a, 1b, 2, 3) + spares.** Claude makes small fixes through GitHub, for free.
 - **Order on the day:** `create_project` (Prompt 1a) → Claude runs `enable_database` + the §6 SQL + seed via `query_database` (free) → Prompt 1b wires it up.
@@ -280,6 +282,17 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 ---
 
 ## 11. Test Run Checklist (before the hackathon)
+
+### Results so far (28 Oct, project "TabSplit: Shared Plates")
+- ✅ Lovable MCP connected from a **cloud** session (custom connector on claude.ai).
+- ✅ Prompt 1a built all 4 routes, the receipt-paper design, QR, aliases and rename in one turn. **Cost: 4.9 credits.**
+- ✅ Lovable's default stack is now **TanStack Start** (file routes like `src/routes/b.$code.tsx`), not React Router. Prompts don't need to change; Lovable handles it.
+- ⚠️ Lovable's strict TypeScript (`noUncheckedIndexedAccess`) rejected Appendix A, so it added `// @ts-nocheck`. **Fixed:** Appendix A now passes strict mode, so paste the new version on the day.
+- ✅ `enable_database` + the §6 SQL + the DEMO42 seed via `query_database`: **free** (not in the credit usage). Realtime publication and `REPLICA IDENTITY FULL` were confirmed on all 4 tables.
+- ✅ `deploy_project` published to `https://tabsplit-test.lovable.app` (free).
+- ⏳ Still to test: phone QR on the published URL, GitHub sync (free code pushes), Prompt 1b cost, realtime on real phones, Monzo link, receipt parsing.
+
+### Checklist
 - [ ] Lovable MCP connected and authenticated. `list_workspaces` works.
 - [ ] Cost of Prompts 1a, 1b (and 2 if run) in credits, written down here.
 - [ ] The host link (`?g=`) on a phone takes on the host identity, with no duplicate guest.
@@ -343,7 +356,7 @@ Bug fixes Lovable is better at than a git push (layout, responsive issues). **Ne
 
 ---
 
-## Appendix A: `src/lib/split.ts` (tested 28 Oct 2026)
+## Appendix A: `src/lib/split.ts` (tested 28 Oct 2026, passes `tsc --strict --noUncheckedIndexedAccess`)
 Tested against: shared items, unclaimed items, exact totals with 12.5% added, service already printed on the receipt, empty bill, and the Monzo link format. Example: £60.70 of food + £7.59 service = **£68.29, and the three shares add up to exactly £68.29.**
 
 ```ts
@@ -356,14 +369,14 @@ export type Service = { mode: ServiceMode; rate: number; included_pence?: number
 // Split `total` across weights so the parts always sum to exactly `total` (largest remainder).
 export function allocate(total: number, weights: Record<string, number>): Record<string, number> {
   const ids = Object.keys(weights).sort();
-  const sum = ids.reduce((s, id) => s + weights[id], 0);
+  const sum = ids.reduce((s, id) => s + (weights[id] ?? 0), 0);
   const out: Record<string, number> = {};
   if (sum <= 0 || total === 0) { ids.forEach((id) => (out[id] = 0)); return out; }
-  const raw = ids.map((id) => ({ id, exact: (total * weights[id]) / sum }));
+  const raw = ids.map((id) => ({ id, exact: (total * (weights[id] ?? 0)) / sum }));
   raw.forEach((r) => (out[r.id] = Math.floor(r.exact)));
-  let left = total - raw.reduce((s, r) => s + out[r.id], 0);
+  let left = total - raw.reduce((s, r) => s + (out[r.id] ?? 0), 0);
   raw.sort((a, b) => (b.exact - Math.floor(b.exact)) - (a.exact - Math.floor(a.exact)) || a.id.localeCompare(b.id));
-  for (const r of raw) { if (left <= 0) break; out[r.id] += 1; left -= 1; }
+  for (const r of raw) { if (left <= 0) break; out[r.id] = (out[r.id] ?? 0) + 1; left -= 1; }
   return out;
 }
 
@@ -375,7 +388,7 @@ export function computeSplit(items: Item[], claims: Claim[], guestIds: string[],
       .filter((g) => g in food);
     if (claimers.length === 0) { unclaimed.push(item); continue; }
     const parts = allocate(item.price_pence, Object.fromEntries(claimers.map((g) => [g, 1])));
-    for (const g of claimers) food[g] += parts[g];
+    for (const g of claimers) food[g] = (food[g] ?? 0) + (parts[g] ?? 0);
   }
   const itemsTotal = items.reduce((s, i) => s + i.price_pence, 0);
   const serviceTotal =
@@ -387,7 +400,7 @@ export function computeSplit(items: Item[], claims: Claim[], guestIds: string[],
   const serviceForClaimed = itemsTotal === 0 ? 0 : Math.round((serviceTotal * claimedFood) / itemsTotal);
   const svc = allocate(serviceForClaimed, food);
   const perGuest = guestIds.map((g) => ({
-    guest_id: g, food_pence: food[g], service_pence: svc[g] ?? 0, total_pence: food[g] + (svc[g] ?? 0),
+    guest_id: g, food_pence: food[g] ?? 0, service_pence: svc[g] ?? 0, total_pence: (food[g] ?? 0) + (svc[g] ?? 0),
   }));
   const billTotal = itemsTotal + serviceTotal;
   const claimedTotal = perGuest.reduce((s, p) => s + p.total_pence, 0);
